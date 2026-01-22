@@ -1,6 +1,5 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import type { Part } from "@opencode-ai/sdk/v2/client";
-import type { BuiltInTemplate } from "../constants";
 import type {
   ArtifactItem,
   DashboardTab,
@@ -14,8 +13,6 @@ import type {
 
 import {
   ArrowRight,
-  BarChart2,
-  Calendar,
   Check,
   ChevronDown,
   Circle,
@@ -23,8 +20,6 @@ import {
   FileText,
   Folder,
   HardDrive,
-  Layers,
-  Mail,
   Plus,
   Shield,
   Zap,
@@ -86,8 +81,6 @@ export type SessionViewProps = {
   safeStringify: (value: unknown) => string;
   error: string | null;
   sessionStatus: string;
-  builtInTemplates: BuiltInTemplate[];
-  runTemplate: (template: BuiltInTemplate) => void;
 };
 
 export default function SessionView(props: SessionViewProps) {
@@ -541,50 +534,6 @@ export default function SessionView(props: SessionViewProps) {
                     </p>
                   </div>
 
-                  {/* Built-in Template Recommendations */}
-                  <Show when={props.builtInTemplates.length > 0}>
-                    <div class="pt-8 max-w-md mx-auto">
-                      <div class="grid grid-cols-2 gap-3">
-                        <For each={props.builtInTemplates.slice(0, 6)}>
-                          {(template) => {
-                            const getIcon = () => {
-                              switch (template.icon) {
-                                case "file":
-                                  return <FileText size={18} class="text-gray-10" />;
-                                case "data":
-                                  return <BarChart2 size={18} class="text-gray-10" />;
-                                case "prototype":
-                                  return <Layers size={18} class="text-gray-10" />;
-                                case "folder":
-                                  return <Folder size={18} class="text-gray-10" />;
-                                case "calendar":
-                                  return <Calendar size={18} class="text-gray-10" />;
-                                case "message":
-                                  return <Mail size={18} class="text-gray-10" />;
-                                default:
-                                  return <FileText size={18} class="text-gray-10" />;
-                              }
-                            };
-
-                            return (
-                              <button
-                                onClick={() => props.runTemplate(template)}
-                                disabled={props.busy}
-                                class="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-2/50 hover:bg-gray-3 border border-gray-6/50 hover:border-gray-7 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <div class="w-9 h-9 rounded-lg bg-gray-3/60 flex items-center justify-center shrink-0 group-hover:bg-gray-4/60 transition-colors">
-                                  {getIcon()}
-                                </div>
-                                <span class="text-sm text-gray-11 group-hover:text-gray-12 transition-colors">
-                                  {template.title}
-                                </span>
-                              </button>
-                            );
-                          }}
-                        </For>
-                      </div>
-                    </div>
-                  </Show>
                 </div>
               </Show>
 

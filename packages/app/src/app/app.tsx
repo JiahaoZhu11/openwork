@@ -474,7 +474,6 @@ export default function App() {
     setTemplateModalError,
     workspaceTemplates,
     globalTemplates,
-    builtInTemplates,
     openTemplateModal,
     saveTemplate,
     deleteTemplate,
@@ -1647,7 +1646,6 @@ export default function App() {
     },
     openTemplateModal,
     runTemplate,
-    builtInTemplates: builtInTemplates(),
     saveSessionAsTemplate: async (sessionId: string, sessionTitle: string) => {
       // Set the title from the session
       setTemplateDraftTitle(sessionTitle);
@@ -1838,8 +1836,6 @@ export default function App() {
               }}
               sessionStatus={selectedSessionStatus()}
               error={error()}
-              builtInTemplates={builtInTemplates()}
-              runTemplate={runTemplate}
           />
         </Match>
         <Match when={true}>

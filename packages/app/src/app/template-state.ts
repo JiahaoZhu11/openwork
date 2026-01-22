@@ -1,7 +1,6 @@
 import { createMemo, createSignal, type Accessor } from "solid-js";
 
 import type { Client, ModelRef, WorkspaceTemplate } from "./types";
-import { BUILT_IN_TEMPLATES, type BuiltInTemplate } from "./constants";
 import { buildTemplateDraft, createTemplateRecord, resetTemplateDraft } from "./utils/templates";
 import { addOpencodeCacheHint, isTauriRuntime, parseTemplateFrontmatter, safeParseJson, safeStringify } from "./utils";
 import { workspaceTemplateDelete, workspaceTemplateWrite } from "./lib/tauri";
@@ -39,10 +38,7 @@ export function createTemplateState(options: {
   const [templateModalError, setTemplateModalError] = createSignal<string | null>(null);
 
   const workspaceTemplates = createMemo(() => templates().filter((t) => t.scope === "workspace"));
-  // User-created global templates (excludes built-in templates)
   const globalTemplates = createMemo(() => templates().filter((t) => t.scope === "global"));
-  // Built-in templates are always available and shown separately
-  const builtInTemplates = createMemo<BuiltInTemplate[]>(() => BUILT_IN_TEMPLATES);
 
   function openTemplateModal() {
     const seedTitle = options.selectedSession()?.title ?? "";
@@ -344,7 +340,6 @@ export function createTemplateState(options: {
     setTemplateModalError,
     workspaceTemplates,
     globalTemplates,
-    builtInTemplates,
     openTemplateModal,
     saveTemplate,
     deleteTemplate,

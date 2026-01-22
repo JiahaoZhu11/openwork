@@ -7,7 +7,7 @@ import type {
   SkillCard,
   WorkspaceTemplate,
 } from "../types";
-import type { McpDirectoryInfo, BuiltInTemplate } from "../constants";
+import type { McpDirectoryInfo } from "../constants";
 import type { WorkspaceInfo } from "../lib/tauri";
 import { formatRelativeTime, normalizeDirectoryPath } from "../utils";
 
@@ -20,14 +20,9 @@ import SettingsView from "./settings";
 import SkillsView from "./skills";
 import TemplatesView from "./templates";
 import {
-  BarChart2,
-  Calendar,
   Command,
   Cpu,
   FileText,
-  Folder,
-  Layers,
-  Mail,
   Package,
   Play,
   Plus,
@@ -85,7 +80,6 @@ export type DashboardViewProps = {
   openTemplateModal: () => void;
   resetTemplateDraft?: (scope?: "workspace" | "global") => void;
   runTemplate: (template: WorkspaceTemplate) => void;
-  builtInTemplates: BuiltInTemplate[];
   saveSessionAsTemplate: (sessionId: string, sessionTitle: string) => void;
   deleteTemplate: (templateId: string) => void;
   refreshSkills: (options?: { force?: boolean }) => void;
@@ -213,16 +207,7 @@ export default function DashboardView(props: DashboardViewProps) {
     }
   });
 
-  const quickTemplates = createMemo(() => {
-    // If user has workspace templates, use those
-    if (props.workspaceTemplates.length > 0) {
-      return props.workspaceTemplates.slice(0, 3);
-    }
-    // Otherwise, show built-in templates as fallback
-    return props.builtInTemplates.slice(0, 3);
-  });
-
-  const hasUserTemplates = createMemo(() => props.workspaceTemplates.length > 0);
+  const quickTemplates = createMemo(() => props.workspaceTemplates.slice(0, 3));
 
   const openSessionFromList = (sessionId: string) => {
     // Defer view switch to avoid click-through on the same event frame.
@@ -526,50 +511,6 @@ export default function DashboardView(props: DashboardViewProps) {
                     </div>
                   </div>
 
-                  {/* Built-in Template Recommendations */}
-                  <Show when={props.builtInTemplates.length > 0}>
-                    <div class="mt-6 pt-5 border-t border-gray-6/40">
-                      <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        <For each={props.builtInTemplates.slice(0, 6)}>
-                          {(template) => {
-                            const getIcon = () => {
-                              switch (template.icon) {
-                                case "file":
-                                  return <FileText size={16} class="text-gray-10" />;
-                                case "data":
-                                  return <BarChart2 size={16} class="text-gray-10" />;
-                                case "prototype":
-                                  return <Layers size={16} class="text-gray-10" />;
-                                case "folder":
-                                  return <Folder size={16} class="text-gray-10" />;
-                                case "calendar":
-                                  return <Calendar size={16} class="text-gray-10" />;
-                                case "message":
-                                  return <Mail size={16} class="text-gray-10" />;
-                                default:
-                                  return <FileText size={16} class="text-gray-10" />;
-                              }
-                            };
-
-                            return (
-                              <button
-                                onClick={() => props.runTemplate(template)}
-                                disabled={props.newTaskDisabled}
-                                class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-2/60 hover:bg-gray-3 border border-gray-6/50 hover:border-gray-7 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <div class="w-7 h-7 rounded-lg bg-gray-3/60 flex items-center justify-center shrink-0 group-hover:bg-gray-4/60 transition-colors">
-                                  {getIcon()}
-                                </div>
-                                <span class="text-sm text-gray-11 group-hover:text-gray-12 transition-colors truncate">
-                                  {template.title}
-                                </span>
-                              </button>
-                            );
-                          }}
-                        </For>
-                      </div>
-                    </div>
-                  </Show>
                 </div>
               </section>
 
@@ -777,7 +718,6 @@ export default function DashboardView(props: DashboardViewProps) {
                 busy={props.busy}
                 workspaceTemplates={props.workspaceTemplates}
                 globalTemplates={props.globalTemplates}
-                builtInTemplates={props.builtInTemplates}
                 setTemplateDraftTitle={props.setTemplateDraftTitle}
                 setTemplateDraftDescription={props.setTemplateDraftDescription}
                 setTemplateDraftPrompt={props.setTemplateDraftPrompt}

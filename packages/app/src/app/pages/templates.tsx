@@ -1,17 +1,15 @@
 import { For, Show, createMemo } from "solid-js";
 
 import type { WorkspaceTemplate } from "../types";
-import type { BuiltInTemplate } from "../constants";
 import { formatRelativeTime } from "../utils";
 
 import Button from "../components/button";
-import { BarChart2, Calendar, FileText, Folder, Layers, Mail, Play, Plus, Trash2 } from "lucide-solid";
+import { FileText, Play, Plus, Trash2 } from "lucide-solid";
 
 export type TemplatesViewProps = {
   busy: boolean;
   workspaceTemplates: WorkspaceTemplate[];
   globalTemplates: WorkspaceTemplate[];
-  builtInTemplates: BuiltInTemplate[];
   setTemplateDraftTitle: (value: string) => void;
   setTemplateDraftDescription: (value: string) => void;
   setTemplateDraftPrompt: (value: string) => void;
@@ -40,25 +38,6 @@ export default function TemplatesView(props: TemplatesViewProps) {
     props.workspaceTemplates.length > 0 || props.globalTemplates.length > 0
   );
 
-  const getStarterIcon = (icon: BuiltInTemplate["icon"]) => {
-    switch (icon) {
-      case "file":
-        return <FileText size={16} class="text-amber-11" />;
-      case "data":
-        return <BarChart2 size={16} class="text-amber-11" />;
-      case "prototype":
-        return <Layers size={16} class="text-amber-11" />;
-      case "folder":
-        return <Folder size={16} class="text-amber-11" />;
-      case "calendar":
-        return <Calendar size={16} class="text-amber-11" />;
-      case "message":
-        return <Mail size={16} class="text-amber-11" />;
-      default:
-        return <FileText size={16} class="text-amber-11" />;
-    }
-  };
-
   return (
     <section class="space-y-6">
       <div class="flex items-center justify-between">
@@ -68,32 +47,6 @@ export default function TemplatesView(props: TemplatesViewProps) {
           New
         </Button>
       </div>
-
-      {/* Built-in Templates Section - Always shown */}
-      <Show when={props.builtInTemplates.length > 0}>
-        <div class="space-y-3">
-          <div class="text-xs font-semibold text-gray-10 uppercase tracking-wider">Starter Templates</div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <For each={props.builtInTemplates}>
-              {(t) => (
-                <button
-                  onClick={() => props.runTemplate(t)}
-                  disabled={props.busy}
-                  class="bg-gray-2/30 border border-gray-6/50 rounded-2xl p-4 flex items-center gap-3 hover:bg-gray-2 hover:border-gray-7 transition-all text-left group disabled:opacity-50"
-                >
-                  <div class="w-10 h-10 rounded-lg bg-gray-3/60 flex items-center justify-center shrink-0 group-hover:bg-gray-4/60 transition-colors">
-                    {getStarterIcon(t.icon)}
-                  </div>
-                  <div class="min-w-0">
-                    <div class="font-medium text-gray-12 truncate">{t.title}</div>
-                    <div class="text-xs text-gray-10 truncate">{t.description}</div>
-                  </div>
-                </button>
-              )}
-            </For>
-          </div>
-        </div>
-      </Show>
 
       {/* User Templates Section */}
       <Show
