@@ -388,11 +388,8 @@ export default function SessionView(props: SessionViewProps) {
   };
 
   const handlePromptKeyDown = (event: KeyboardEvent) => {
-    // During IME composition, let the browser handle all keys
-    if (event.isComposing) return;
-
-    // Shift+Enter allows newline
     if (event.key === "Enter" && event.shiftKey) return;
+    if (event.isComposing && event.key !== "Enter") return;
 
     const menuOpen = commandMenuOpen();
     const matches = commandMatches();
