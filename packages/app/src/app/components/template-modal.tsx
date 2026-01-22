@@ -66,7 +66,7 @@ export default function TemplateModal(props: TemplateModalProps) {
                   <select
                     value={selectedSessionId()}
                     onChange={handleSessionSelect}
-                    class="flex-1 rounded-xl bg-gray-2/60 px-3 py-2 text-sm text-gray-12 shadow-[0_0_0_1px_rgba(255,255,255,0.08)] focus:outline-none focus:ring-2 focus:ring-gray-6/20"
+                    class="flex-1 h-8 rounded-lg bg-gray-2 border border-gray-6 px-2 py-1 text-xs text-gray-12 hover:border-gray-7 focus:outline-none focus:border-gray-7 cursor-pointer"
                   >
                     <option value="">select a previous session</option>
                     <For each={props.sessions}>
@@ -129,23 +129,21 @@ export default function TemplateModal(props: TemplateModalProps) {
               </label>
 
               {/* Auto-run Toggle */}
-              <div class="flex items-center justify-between py-2">
-                <div>
+              <div class="flex items-center justify-between bg-gray-1 p-3 rounded-xl border border-gray-6 gap-3">
+                <div class="min-w-0">
                   <div class="text-sm text-gray-12">{translate("templates.auto_run_label")}</div>
-                  <div class="text-xs text-gray-10">{translate("templates.auto_run_hint")}</div>
+                  <div class="text-xs text-gray-7">{translate("templates.auto_run_hint")}</div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => props.onAutoRunChange(!props.autoRun)}
-                  class={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    props.autoRun ? "bg-green-9" : "bg-gray-6"
+                  class={`px-3 py-1 rounded-full text-xs font-medium border transition-colors shrink-0 ${
+                    props.autoRun
+                      ? "bg-gray-12/10 text-gray-12 border-gray-6/20"
+                      : "text-gray-10 border-gray-6 hover:text-gray-12"
                   }`}
+                  onClick={() => props.onAutoRunChange(!props.autoRun)}
                 >
-                  <span
-                    class={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      props.autoRun ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  />
+                  {props.autoRun ? "On" : "Off"}
                 </button>
               </div>
             </div>
