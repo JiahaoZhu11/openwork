@@ -107,6 +107,16 @@ export default function SessionView(props: SessionViewProps) {
   const [commandToast, setCommandToast] = createSignal<string | null>(null);
   const [commandIndex, setCommandIndex] = createSignal(0);
 
+  // Debug state for keyboard events
+  const [debugKeyEvent, setDebugKeyEvent] = createSignal<{
+    key: string;
+    isComposing: boolean;
+    eventType: string;
+    timestamp: number;
+    rawEvent: Record<string, unknown>;
+  } | null>(null);
+  const [debugExpanded, setDebugExpanded] = createSignal(false);
+
   let promptInputEl: HTMLTextAreaElement | undefined;
 
   createEffect(() => {
@@ -388,6 +398,30 @@ export default function SessionView(props: SessionViewProps) {
   };
 
   const handlePromptKeyDown = (event: KeyboardEvent) => {
+    // Debug: capture event details
+    const debugInfo = {
+      key: event.key,
+      isComposing: event.isComposing,
+      eventType: event.type,
+      timestamp: Date.now(),
+      rawEvent: {
+        key: event.key,
+        code: event.code,
+        isComposing: event.isComposing,
+        shiftKey: event.shiftKey,
+        ctrlKey: event.ctrlKey,
+        altKey: event.altKey,
+        metaKey: event.metaKey,
+        repeat: event.repeat,
+        location: event.location,
+        charCode: event.charCode,
+        keyCode: event.keyCode,
+        which: event.which,
+      },
+    };
+    setDebugKeyEvent(debugInfo);
+    console.log("[KeyDown Debug]", debugInfo);
+
     // During IME composition, let the browser handle all keys (including Enter to confirm selection)
     if (event.isComposing) return;
 
@@ -443,6 +477,42 @@ export default function SessionView(props: SessionViewProps) {
       }
     >
       <div class="h-screen flex flex-col bg-gray-1 text-gray-12 relative">
+        {/* Debug Panel */}
+        <div class="fixed top-4 right-4 z-[9999] bg-gray-2 border border-gray-6 rounded-xl shadow-2xl text-xs font-mono max-w-[320px]">
+          <button
+            class="w-full px-3 py-2 flex items-center justify-between text-left hover:bg-gray-3 rounded-t-xl"
+            onClick={() => setDebugExpanded(!debugExpanded())}
+          >
+            <span class="font-semibold text-gray-11">Keyboard Debug</span>
+            <ChevronDown
+              size={14}
+              class={`transition-transform ${debugExpanded() ? "rotate-180" : ""}`}
+            />
+          </button>
+          <div class="px-3 py-2 border-t border-gray-6 space-y-1">
+            <div class="flex justify-between">
+              <span class="text-gray-9">isComposing:</span>
+              <span class={debugKeyEvent()?.isComposing ? "text-amber-11" : "text-green-11"}>
+                {debugKeyEvent()?.isComposing?.toString() ?? "—"}
+              </span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-9">key:</span>
+              <span class="text-gray-12">{debugKeyEvent()?.key ?? "—"}</span>
+            </div>
+          </div>
+          <Show when={debugExpanded()}>
+            <div class="px-3 py-2 border-t border-gray-6">
+              <div class="text-gray-9 mb-1">Raw Event:</div>
+              <pre class="text-[10px] text-gray-11 overflow-auto max-h-[200px] bg-gray-1 rounded p-2">
+                {debugKeyEvent()?.rawEvent
+                  ? JSON.stringify(debugKeyEvent()?.rawEvent, null, 2)
+                  : "No event yet"}
+              </pre>
+            </div>
+          </Show>
+        </div>
+
         <header class="h-16 border-b border-gray-6 flex items-center justify-between px-6 bg-gray-1/80 backdrop-blur-md z-10 sticky top-0">
           <div class="flex items-center gap-3">
             <Button
