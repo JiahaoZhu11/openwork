@@ -1042,8 +1042,13 @@ export default function SessionView(props: SessionViewProps) {
                         console.log("[Composition] Start");
                       }}
                       onCompositionEnd={() => {
-                        setIsComposingIME(false);
-                        console.log("[Composition] End");
+                        // Delay setting to false so the keydown handler (which fires before this in the same tick)
+                        // can still see isComposingIME as true for the Enter that confirms the composition
+                        setTimeout(() => {
+                          setIsComposingIME(false);
+                          console.log("[Composition] End (deferred)");
+                        }, 0);
+                        console.log("[Composition] End (scheduled)");
                       }}
                       placeholder="Ask OpenWork..."
                       class="flex-1 bg-transparent border-none outline-none p-0 text-gray-12 placeholder-gray-6 focus:ring-0 text-[15px] leading-relaxed resize-none min-h-[24px] max-h-[160px]"
