@@ -109,12 +109,15 @@ export default function SessionView(props: SessionViewProps) {
 
   // Track IME composition state via events (more reliable than event.isComposing)
   const [isComposingIME, setIsComposingIME] = createSignal(false);
+  // Flag to skip the next Enter key (set when composition ends, cleared on any keydown)
+  let skipNextEnter = false;
 
   // Debug state for keyboard events
   const [debugKeyEvent, setDebugKeyEvent] = createSignal<{
     key: string;
     isComposing: boolean;
     isComposingIME: boolean;
+    skipNextEnter: boolean;
     eventType: string;
     timestamp: number;
     rawEvent: Record<string, unknown>;
@@ -404,10 +407,12 @@ export default function SessionView(props: SessionViewProps) {
   const handlePromptKeyDown = (event: KeyboardEvent) => {
     // Debug: capture event details
     const composingTracked = isComposingIME();
+    const shouldSkipEnter = skipNextEnter;
     const debugInfo = {
       key: event.key,
       isComposing: event.isComposing,
       isComposingIME: composingTracked,
+      skipNextEnter: shouldSkipEnter,
       eventType: event.type,
       timestamp: Date.now(),
       rawEvent: {
@@ -415,6 +420,7 @@ export default function SessionView(props: SessionViewProps) {
         code: event.code,
         isComposing: event.isComposing,
         isComposingIME: composingTracked,
+        skipNextEnter: shouldSkipEnter,
         shiftKey: event.shiftKey,
         ctrlKey: event.ctrlKey,
         altKey: event.altKey,
@@ -432,6 +438,15 @@ export default function SessionView(props: SessionViewProps) {
     // During IME composition, let the browser handle all keys (including Enter to confirm selection)
     // Use tracked state (isComposingIME) as event.isComposing is false for the confirming Enter key
     if (composingTracked || event.isComposing) return;
+
+    // Skip the Enter key that was used to confirm IME composition
+    if (event.key === "Enter" && shouldSkipEnter) {
+      skipNextEnter = false;
+      console.log("[KeyDown] Skipping Enter (was used to confirm IME)");
+      return;
+    }
+    // Clear the flag on any other keydown
+    skipNextEnter = false;
 
     // Shift+Enter allows newline
     if (event.key === "Enter" && event.shiftKey) return;
@@ -508,6 +523,12 @@ export default function SessionView(props: SessionViewProps) {
               <span class="text-gray-9">isComposingIME (tracked):</span>
               <span class={isComposingIME() ? "text-amber-11 font-bold" : "text-green-11"}>
                 {isComposingIME().toString()}
+              </span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-9">skipNextEnter:</span>
+              <span class={debugKeyEvent()?.skipNextEnter ? "text-amber-11 font-bold" : "text-green-11"}>
+                {debugKeyEvent()?.skipNextEnter?.toString() ?? "—"}
               </span>
             </div>
             <div class="flex justify-between">
@@ -1039,16 +1060,14 @@ export default function SessionView(props: SessionViewProps) {
                       onKeyDown={handlePromptKeyDown}
                       onCompositionStart={() => {
                         setIsComposingIME(true);
+                        skipNextEnter = false;
                         console.log("[Composition] Start");
                       }}
                       onCompositionEnd={() => {
-                        // Delay setting to false so the keydown handler (which fires before this in the same tick)
-                        // can still see isComposingIME as true for the Enter that confirms the composition
-                        setTimeout(() => {
-                          setIsComposingIME(false);
-                          console.log("[Composition] End (deferred)");
-                        }, 0);
-                        console.log("[Composition] End (scheduled)");
+                        setIsComposingIME(false);
+                        // Flag to skip the next Enter key (the one that confirmed the composition)
+                        skipNextEnter = true;
+                        console.log("[Composition] End - skipNextEnter set to true");
                       }}
                       placeholder="Ask OpenWork..."
                       class="flex-1 bg-transparent border-none outline-none p-0 text-gray-12 placeholder-gray-6 focus:ring-0 text-[15px] leading-relaxed resize-none min-h-[24px] max-h-[160px]"
