@@ -7,8 +7,7 @@ import type {
   SkillCard,
   WorkspaceTemplate,
 } from "../types";
-import type { McpDirectoryInfo, StarterTemplate } from "../constants";
-import { STARTER_TEMPLATES } from "../constants";
+import type { McpDirectoryInfo, BuiltInTemplate } from "../constants";
 import type { WorkspaceInfo } from "../lib/tauri";
 import { formatRelativeTime, normalizeDirectoryPath } from "../utils";
 
@@ -86,8 +85,7 @@ export type DashboardViewProps = {
   openTemplateModal: () => void;
   resetTemplateDraft?: (scope?: "workspace" | "global") => void;
   runTemplate: (template: WorkspaceTemplate) => void;
-  runStarterTemplate: (template: StarterTemplate) => void;
-  starterTemplates: StarterTemplate[];
+  builtInTemplates: BuiltInTemplate[];
   saveSessionAsTemplate: (sessionId: string, sessionTitle: string) => void;
   deleteTemplate: (templateId: string) => void;
   refreshSkills: (options?: { force?: boolean }) => void;
@@ -220,17 +218,8 @@ export default function DashboardView(props: DashboardViewProps) {
     if (props.workspaceTemplates.length > 0) {
       return props.workspaceTemplates.slice(0, 3);
     }
-    // Otherwise, show starter templates as fallback
-    return props.starterTemplates.slice(0, 3).map((st) => ({
-      id: st.id,
-      title: st.title,
-      description: st.description,
-      prompt: st.prompt,
-      createdAt: Date.now(),
-      scope: "workspace" as const,
-      autoRun: st.autoRun,
-      isStarter: true,
-    }));
+    // Otherwise, show built-in templates as fallback
+    return props.builtInTemplates.slice(0, 3);
   });
 
   const hasUserTemplates = createMemo(() => props.workspaceTemplates.length > 0);
@@ -537,11 +526,11 @@ export default function DashboardView(props: DashboardViewProps) {
                     </div>
                   </div>
 
-                  {/* Starter Recommendations */}
-                  <Show when={props.starterTemplates.length > 0}>
+                  {/* Built-in Template Recommendations */}
+                  <Show when={props.builtInTemplates.length > 0}>
                     <div class="mt-6 pt-5 border-t border-gray-6/40">
                       <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        <For each={props.starterTemplates.slice(0, 6)}>
+                        <For each={props.builtInTemplates.slice(0, 6)}>
                           {(template) => {
                             const getIcon = () => {
                               switch (template.icon) {
@@ -564,7 +553,7 @@ export default function DashboardView(props: DashboardViewProps) {
 
                             return (
                               <button
-                                onClick={() => props.runStarterTemplate(template)}
+                                onClick={() => props.runTemplate(template)}
                                 disabled={props.newTaskDisabled}
                                 class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-2/60 hover:bg-gray-3 border border-gray-6/50 hover:border-gray-7 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed"
                               >
@@ -607,36 +596,20 @@ export default function DashboardView(props: DashboardViewProps) {
                 >
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <For each={quickTemplates()}>
-                      {(t) => {
-                        const isStarter = () => (t as any).isStarter === true;
-                        const handleClick = () => {
-                          if (isStarter()) {
-                            const starterTemplate = props.starterTemplates.find(
-                              (st) => st.id === t.id
-                            );
-                            if (starterTemplate) {
-                              props.runStarterTemplate(starterTemplate);
-                            }
-                          } else {
-                            props.runTemplate(t);
-                          }
-                        };
-
-                        return (
-                          <button
-                            onClick={handleClick}
-                            class="group p-5 rounded-2xl bg-gray-2/30 border border-gray-6/50 hover:bg-gray-2 hover:border-gray-7 transition-all text-left"
-                          >
-                            <div class="w-10 h-10 rounded-full bg-gray-4 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                              <FileText size={20} class="text-indigo-11" />
-                            </div>
-                            <h4 class="font-medium text-gray-12 mb-1">{t.title}</h4>
-                            <p class="text-sm text-gray-10">
-                              {t.description || "Run a saved workflow"}
-                            </p>
-                          </button>
-                        );
-                      }}
+                      {(tmpl) => (
+                        <button
+                          onClick={() => props.runTemplate(tmpl)}
+                          class="group p-5 rounded-2xl bg-gray-2/30 border border-gray-6/50 hover:bg-gray-2 hover:border-gray-7 transition-all text-left"
+                        >
+                          <div class="w-10 h-10 rounded-full bg-gray-4 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <FileText size={20} class="text-indigo-11" />
+                          </div>
+                          <h4 class="font-medium text-gray-12 mb-1">{tmpl.title}</h4>
+                          <p class="text-sm text-gray-10">
+                            {tmpl.description || "Run a saved workflow"}
+                          </p>
+                        </button>
+                      )}
                     </For>
                   </div>
                 </Show>
@@ -804,7 +777,7 @@ export default function DashboardView(props: DashboardViewProps) {
                 busy={props.busy}
                 workspaceTemplates={props.workspaceTemplates}
                 globalTemplates={props.globalTemplates}
-                starterTemplates={props.starterTemplates}
+                builtInTemplates={props.builtInTemplates}
                 setTemplateDraftTitle={props.setTemplateDraftTitle}
                 setTemplateDraftDescription={props.setTemplateDraftDescription}
                 setTemplateDraftPrompt={props.setTemplateDraftPrompt}
@@ -812,7 +785,6 @@ export default function DashboardView(props: DashboardViewProps) {
                 openTemplateModal={props.openTemplateModal}
                 resetTemplateDraft={props.resetTemplateDraft}
                 runTemplate={props.runTemplate}
-                runStarterTemplate={props.runStarterTemplate}
                 deleteTemplate={props.deleteTemplate}
               />
             </Match>

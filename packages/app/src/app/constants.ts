@@ -60,67 +60,83 @@ export type McpDirectoryInfo = {
   oauth: boolean;
 };
 
+import type { WorkspaceTemplate } from "./types";
+
 /**
- * Starter templates shown as recommendations on dashboard and new session screens.
- * These are suggestion cards that help new users understand what OpenWork can do.
+ * Built-in starter templates that are always available.
+ * These are loaded into the template system automatically.
  */
-export type StarterTemplate = {
-  id: string;
-  title: string;
-  description: string;
-  prompt: string;
+export type BuiltInTemplate = WorkspaceTemplate & {
+  isBuiltIn: true;
   icon: "file" | "data" | "prototype" | "folder" | "calendar" | "message";
-  autoRun: boolean;
 };
 
-export const STARTER_TEMPLATES: StarterTemplate[] = [
+export const BUILT_IN_TEMPLATES: BuiltInTemplate[] = [
   {
-    id: "create-file",
+    id: "builtin-create-file",
     title: "Create a file",
     description: "Generate documents, scripts, or any file type",
     prompt: "Help me create a new file. What kind of file would you like to create?",
     icon: "file",
     autoRun: false,
+    createdAt: 0,
+    scope: "global",
+    isBuiltIn: true,
   },
   {
-    id: "crunch-data",
+    id: "builtin-crunch-data",
     title: "Crunch data",
     description: "Analyze spreadsheets, logs, or datasets",
     prompt: "I need help analyzing some data. Please describe the data you want to analyze or share a file.",
     icon: "data",
     autoRun: false,
+    createdAt: 0,
+    scope: "global",
+    isBuiltIn: true,
   },
   {
-    id: "make-prototype",
+    id: "builtin-make-prototype",
     title: "Make a prototype",
     description: "Build quick demos and proof of concepts",
     prompt: "Let's create a prototype. What would you like to build?",
     icon: "prototype",
     autoRun: false,
+    createdAt: 0,
+    scope: "global",
+    isBuiltIn: true,
   },
   {
-    id: "organize-files",
+    id: "builtin-organize-files",
     title: "Organize files",
     description: "Sort, rename, and structure your files",
     prompt: "I'll help you organize your files. Which folder would you like me to work with?",
     icon: "folder",
     autoRun: false,
+    createdAt: 0,
+    scope: "global",
+    isBuiltIn: true,
   },
   {
-    id: "prep-meeting",
+    id: "builtin-prep-meeting",
     title: "Prep for a meeting",
     description: "Create agendas and talking points",
     prompt: "Let's prepare for your meeting. What's the meeting about and who will attend?",
     icon: "calendar",
     autoRun: false,
+    createdAt: 0,
+    scope: "global",
+    isBuiltIn: true,
   },
   {
-    id: "draft-message",
+    id: "builtin-draft-message",
     title: "Draft a message",
     description: "Write emails, messages, or announcements",
     prompt: "I'll help you draft a message. What would you like to communicate and to whom?",
     icon: "message",
     autoRun: false,
+    createdAt: 0,
+    scope: "global",
+    isBuiltIn: true,
   },
 ];
 

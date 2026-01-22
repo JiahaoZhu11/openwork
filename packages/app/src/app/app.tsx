@@ -31,12 +31,10 @@ import {
   DEMO_SEQUENCE_PREF_KEY,
   MCP_QUICK_CONNECT,
   MODEL_PREF_KEY,
-  STARTER_TEMPLATES,
   SUGGESTED_PLUGINS,
   THINKING_PREF_KEY,
   VARIANT_PREF_KEY,
 } from "./constants";
-import type { StarterTemplate } from "./constants";
 import { parseMcpServersFromContent } from "./mcp";
 import type {
   Client,
@@ -476,6 +474,7 @@ export default function App() {
     setTemplateModalError,
     workspaceTemplates,
     globalTemplates,
+    builtInTemplates,
     openTemplateModal,
     saveTemplate,
     deleteTemplate,
@@ -1039,100 +1038,6 @@ export default function App() {
     } finally {
       setMcpConnectingName(null);
       console.log("[connectMcp] finally block, connecting name cleared");
-    }
-  }
-
-  async function runStarterTemplate(template: StarterTemplate) {
-    if (template.autoRun) {
-      // Auto-run: Create session and send the prompt automatically
-      if (isDemoMode()) {
-        setPrompt(template.prompt);
-        setView("session");
-        return;
-      }
-
-      const c = client();
-      if (!c) return;
-
-      setBusy(true);
-      setBusyLabel("status.creating_task");
-      setBusyStartedAt(Date.now());
-      setError(null);
-
-      try {
-        const session = unwrap(
-          await c.session.create({
-            title: template.title,
-            directory: workspaceStore.activeWorkspaceRoot().trim(),
-          })
-        );
-        await loadSessions(workspaceStore.activeWorkspaceRoot().trim());
-        await selectSession(session.id);
-        setView("session");
-
-        const model = defaultModel();
-
-        await c.session.promptAsync({
-          sessionID: session.id,
-          model,
-          variant: modelVariant() ?? undefined,
-          parts: [{ type: "text", text: template.prompt }],
-        });
-
-        setSessionModelById((current) => ({
-          ...current,
-          [session.id]: model,
-        }));
-      } catch (e) {
-        const message = e instanceof Error ? e.message : t("app.unknown_error", currentLocale());
-        setError(addOpencodeCacheHint(message));
-      } finally {
-        setBusy(false);
-        setBusyLabel(null);
-        setBusyStartedAt(null);
-      }
-    } else {
-      // Not auto-run: Create session and fill the input but don't send
-      if (isDemoMode()) {
-        setPrompt(template.prompt);
-        setView("session");
-        return;
-      }
-
-      const c = client();
-      if (!c) return;
-
-      setBusy(true);
-      setBusyLabel("status.creating_task");
-      setBusyStartedAt(Date.now());
-      setError(null);
-      setCreatingSession(true);
-
-      try {
-        const session = unwrap(
-          await c.session.create({
-            title: template.title,
-            directory: workspaceStore.activeWorkspaceRoot().trim(),
-          })
-        );
-        await loadSessions(workspaceStore.activeWorkspaceRoot().trim());
-        await selectSession(session.id);
-        setPrompt(template.prompt);
-        setView("session");
-
-        // Focus the prompt input after view transition
-        requestAnimationFrame(() => {
-          window.dispatchEvent(new CustomEvent("openwork:focusPrompt"));
-        });
-      } catch (e) {
-        const message = e instanceof Error ? e.message : t("app.unknown_error", currentLocale());
-        setError(addOpencodeCacheHint(message));
-      } finally {
-        setCreatingSession(false);
-        setBusy(false);
-        setBusyLabel(null);
-        setBusyStartedAt(null);
-      }
     }
   }
 
@@ -1742,8 +1647,7 @@ export default function App() {
     },
     openTemplateModal,
     runTemplate,
-    runStarterTemplate,
-    starterTemplates: STARTER_TEMPLATES,
+    builtInTemplates: builtInTemplates(),
     saveSessionAsTemplate: async (sessionId: string, sessionTitle: string) => {
       // Set the title from the session
       setTemplateDraftTitle(sessionTitle);
@@ -1934,8 +1838,8 @@ export default function App() {
               }}
               sessionStatus={selectedSessionStatus()}
               error={error()}
-              starterTemplates={STARTER_TEMPLATES}
-              runStarterTemplate={runStarterTemplate}
+              builtInTemplates={builtInTemplates()}
+              runTemplate={runTemplate}
           />
         </Match>
         <Match when={true}>

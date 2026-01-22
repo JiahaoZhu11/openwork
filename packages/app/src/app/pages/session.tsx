@@ -1,6 +1,6 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import type { Part } from "@opencode-ai/sdk/v2/client";
-import type { StarterTemplate } from "../constants";
+import type { BuiltInTemplate } from "../constants";
 import type {
   ArtifactItem,
   DashboardTab,
@@ -86,8 +86,8 @@ export type SessionViewProps = {
   safeStringify: (value: unknown) => string;
   error: string | null;
   sessionStatus: string;
-  starterTemplates: StarterTemplate[];
-  runStarterTemplate: (template: StarterTemplate) => void;
+  builtInTemplates: BuiltInTemplate[];
+  runTemplate: (template: BuiltInTemplate) => void;
 };
 
 export default function SessionView(props: SessionViewProps) {
@@ -541,11 +541,11 @@ export default function SessionView(props: SessionViewProps) {
                     </p>
                   </div>
 
-                  {/* Starter Recommendations */}
-                  <Show when={props.starterTemplates.length > 0}>
+                  {/* Built-in Template Recommendations */}
+                  <Show when={props.builtInTemplates.length > 0}>
                     <div class="pt-8 max-w-md mx-auto">
                       <div class="grid grid-cols-2 gap-3">
-                        <For each={props.starterTemplates.slice(0, 6)}>
+                        <For each={props.builtInTemplates.slice(0, 6)}>
                           {(template) => {
                             const getIcon = () => {
                               switch (template.icon) {
@@ -568,7 +568,7 @@ export default function SessionView(props: SessionViewProps) {
 
                             return (
                               <button
-                                onClick={() => props.runStarterTemplate(template)}
+                                onClick={() => props.runTemplate(template)}
                                 disabled={props.busy}
                                 class="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-2/50 hover:bg-gray-3 border border-gray-6/50 hover:border-gray-7 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed"
                               >
