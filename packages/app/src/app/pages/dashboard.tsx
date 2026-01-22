@@ -7,7 +7,8 @@ import type {
   SkillCard,
   WorkspaceTemplate,
 } from "../types";
-import type { McpDirectoryInfo } from "../constants";
+import type { McpDirectoryInfo, StarterTemplate } from "../constants";
+import { STARTER_TEMPLATES } from "../constants";
 import type { WorkspaceInfo } from "../lib/tauri";
 import { formatRelativeTime, normalizeDirectoryPath } from "../utils";
 
@@ -20,14 +21,20 @@ import SettingsView from "./settings";
 import SkillsView from "./skills";
 import TemplatesView from "./templates";
 import {
+  BarChart2,
+  Calendar,
   Command,
   Cpu,
   FileText,
+  Folder,
+  Layers,
+  Mail,
   Package,
   Play,
   Plus,
   Settings,
   Server,
+  ClipboardCopy,
 } from "lucide-solid";
 
 export type DashboardViewProps = {
@@ -79,6 +86,9 @@ export type DashboardViewProps = {
   openTemplateModal: () => void;
   resetTemplateDraft?: (scope?: "workspace" | "global") => void;
   runTemplate: (template: WorkspaceTemplate) => void;
+  runStarterTemplate: (template: StarterTemplate) => void;
+  starterTemplates: StarterTemplate[];
+  saveSessionAsTemplate: (sessionId: string, sessionTitle: string) => void;
   deleteTemplate: (templateId: string) => void;
   refreshSkills: (options?: { force?: boolean }) => void;
   refreshPlugins: (scopeOverride?: PluginScope) => void;
@@ -205,7 +215,25 @@ export default function DashboardView(props: DashboardViewProps) {
     }
   });
 
-  const quickTemplates = createMemo(() => props.workspaceTemplates.slice(0, 3));
+  const quickTemplates = createMemo(() => {
+    // If user has workspace templates, use those
+    if (props.workspaceTemplates.length > 0) {
+      return props.workspaceTemplates.slice(0, 3);
+    }
+    // Otherwise, show starter templates as fallback
+    return props.starterTemplates.slice(0, 3).map((st) => ({
+      id: st.id,
+      title: st.title,
+      description: st.description,
+      prompt: st.prompt,
+      createdAt: Date.now(),
+      scope: "workspace" as const,
+      autoRun: st.autoRun,
+      isStarter: true,
+    }));
+  });
+
+  const hasUserTemplates = createMemo(() => props.workspaceTemplates.length > 0);
 
   const openSessionFromList = (sessionId: string) => {
     // Defer view switch to avoid click-through on the same event frame.
@@ -508,6 +536,51 @@ export default function DashboardView(props: DashboardViewProps) {
                       </div>
                     </div>
                   </div>
+
+                  {/* Starter Recommendations */}
+                  <Show when={props.starterTemplates.length > 0}>
+                    <div class="mt-6 pt-5 border-t border-gray-6/40">
+                      <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <For each={props.starterTemplates.slice(0, 6)}>
+                          {(template) => {
+                            const getIcon = () => {
+                              switch (template.icon) {
+                                case "file":
+                                  return <FileText size={16} class="text-gray-10" />;
+                                case "data":
+                                  return <BarChart2 size={16} class="text-gray-10" />;
+                                case "prototype":
+                                  return <Layers size={16} class="text-gray-10" />;
+                                case "folder":
+                                  return <Folder size={16} class="text-gray-10" />;
+                                case "calendar":
+                                  return <Calendar size={16} class="text-gray-10" />;
+                                case "message":
+                                  return <Mail size={16} class="text-gray-10" />;
+                                default:
+                                  return <FileText size={16} class="text-gray-10" />;
+                              }
+                            };
+
+                            return (
+                              <button
+                                onClick={() => props.runStarterTemplate(template)}
+                                disabled={props.newTaskDisabled}
+                                class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-2/60 hover:bg-gray-3 border border-gray-6/50 hover:border-gray-7 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <div class="w-7 h-7 rounded-lg bg-gray-3/60 flex items-center justify-center shrink-0 group-hover:bg-gray-4/60 transition-colors">
+                                  {getIcon()}
+                                </div>
+                                <span class="text-sm text-gray-11 group-hover:text-gray-12 transition-colors truncate">
+                                  {template.title}
+                                </span>
+                              </button>
+                            );
+                          }}
+                        </For>
+                      </div>
+                    </div>
+                  </Show>
                 </div>
               </section>
 
@@ -528,26 +601,42 @@ export default function DashboardView(props: DashboardViewProps) {
                   when={quickTemplates().length}
                   fallback={
                     <div class="bg-gray-2/30 border border-gray-6/50 rounded-2xl p-6 text-sm text-gray-10">
-                      No templates yet. Starter templates will appear here.
+                      No templates yet. Create one or save from a session.
                     </div>
                   }
                 >
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <For each={quickTemplates()}>
-                      {(t) => (
-                        <button
-                          onClick={() => props.runTemplate(t)}
-                          class="group p-5 rounded-2xl bg-gray-2/30 border border-gray-6/50 hover:bg-gray-2 hover:border-gray-7 transition-all text-left"
-                        >
-                          <div class="w-10 h-10 rounded-full bg-gray-4 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <FileText size={20} class="text-indigo-11" />
-                          </div>
-                          <h4 class="font-medium text-gray-12 mb-1">{t.title}</h4>
-                          <p class="text-sm text-gray-10">
-                            {t.description || "Run a saved workflow"}
-                          </p>
-                        </button>
-                      )}
+                      {(t) => {
+                        const isStarter = () => (t as any).isStarter === true;
+                        const handleClick = () => {
+                          if (isStarter()) {
+                            const starterTemplate = props.starterTemplates.find(
+                              (st) => st.id === t.id
+                            );
+                            if (starterTemplate) {
+                              props.runStarterTemplate(starterTemplate);
+                            }
+                          } else {
+                            props.runTemplate(t);
+                          }
+                        };
+
+                        return (
+                          <button
+                            onClick={handleClick}
+                            class="group p-5 rounded-2xl bg-gray-2/30 border border-gray-6/50 hover:bg-gray-2 hover:border-gray-7 transition-all text-left"
+                          >
+                            <div class="w-10 h-10 rounded-full bg-gray-4 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                              <FileText size={20} class="text-indigo-11" />
+                            </div>
+                            <h4 class="font-medium text-gray-12 mb-1">{t.title}</h4>
+                            <p class="text-sm text-gray-10">
+                              {t.description || "Run a saved workflow"}
+                            </p>
+                          </button>
+                        );
+                      }}
                     </For>
                   </div>
                 </Show>
@@ -561,25 +650,27 @@ export default function DashboardView(props: DashboardViewProps) {
                 <div class="bg-gray-2/30 border border-gray-6/50 rounded-2xl overflow-hidden">
                   <For each={props.sessions.slice(0, 3)}>
                     {(s, idx) => (
-                      <button
-                        class={`w-full p-4 flex items-center justify-between hover:bg-gray-4/50 transition-colors text-left ${
+                      <div
+                        class={`w-full p-4 flex items-center justify-between hover:bg-gray-4/50 transition-colors text-left group relative ${
                           idx() !== Math.min(props.sessions.length, 3) - 1
                             ? "border-b border-gray-6/50"
                             : ""
                         }`}
-                        onPointerDown={(e) => {
-                          e.currentTarget.setPointerCapture?.(e.pointerId);
-                        }}
-                        onPointerUp={() => {
-                          openSessionFromList(s.id);
-                        }}
                       >
-                        <div class="flex items-center gap-4">
-                          <div class="w-8 h-8 rounded-full bg-gray-4 flex items-center justify-center text-xs text-gray-10 font-mono">
+                        <button
+                          class="flex items-center gap-4 flex-1 min-w-0"
+                          onPointerDown={(e) => {
+                            e.currentTarget.setPointerCapture?.(e.pointerId);
+                          }}
+                          onPointerUp={() => {
+                            openSessionFromList(s.id);
+                          }}
+                        >
+                          <div class="w-8 h-8 rounded-full bg-gray-4 flex items-center justify-center text-xs text-gray-10 font-mono shrink-0">
                             #{s.slug?.slice(0, 2) ?? ".."}
                           </div>
-                          <div>
-                            <div class="font-medium text-sm text-gray-12">
+                          <div class="min-w-0">
+                            <div class="font-medium text-sm text-gray-12 truncate">
                               {s.title}
                             </div>
                             <div class="text-xs text-gray-10 flex items-center gap-2">
@@ -599,14 +690,24 @@ export default function DashboardView(props: DashboardViewProps) {
                               </Show>
                             </div>
                           </div>
-                        </div>
-                        <div class="flex items-center gap-4">
+                        </button>
+                        <div class="flex items-center gap-2 shrink-0">
+                          <button
+                            class="p-2 rounded-lg hover:bg-gray-5/50 text-gray-9 hover:text-gray-11 opacity-0 group-hover:opacity-100 transition-all"
+                            title="Save as template"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              props.saveSessionAsTemplate(s.id, s.title);
+                            }}
+                          >
+                            <ClipboardCopy size={16} />
+                          </button>
                           <span class="text-xs px-2 py-0.5 rounded-full border border-gray-7/60 text-gray-11 flex items-center gap-1.5">
                             <span class="w-1.5 h-1.5 rounded-full bg-current" />
                             {props.sessionStatusById[s.id] ?? "idle"}
                           </span>
                         </div>
-                      </button>
+                      </div>
                     )}
                   </For>
 
@@ -628,25 +729,27 @@ export default function DashboardView(props: DashboardViewProps) {
                 <div class="bg-gray-2/30 border border-gray-6/50 rounded-2xl overflow-hidden">
                   <For each={props.sessions.slice(0, 3)}>
                     {(s, idx) => (
-                      <button
-                        class={`w-full p-4 flex items-center justify-between hover:bg-gray-4/50 transition-colors text-left ${
+                      <div
+                        class={`w-full p-4 flex items-center justify-between hover:bg-gray-4/50 transition-colors text-left group relative ${
                           idx() !== Math.min(props.sessions.length, 3) - 1
                             ? "border-b border-gray-6/50"
                             : ""
                         }`}
-                        onPointerDown={(e) => {
-                          e.currentTarget.setPointerCapture?.(e.pointerId);
-                        }}
-                        onPointerUp={() => {
-                          openSessionFromList(s.id);
-                        }}
                       >
-                        <div class="flex items-center gap-4">
-                          <div class="w-8 h-8 rounded-full bg-gray-4 flex items-center justify-center text-xs text-gray-10 font-mono">
+                        <button
+                          class="flex items-center gap-4 flex-1 min-w-0"
+                          onPointerDown={(e) => {
+                            e.currentTarget.setPointerCapture?.(e.pointerId);
+                          }}
+                          onPointerUp={() => {
+                            openSessionFromList(s.id);
+                          }}
+                        >
+                          <div class="w-8 h-8 rounded-full bg-gray-4 flex items-center justify-center text-xs text-gray-10 font-mono shrink-0">
                             #{s.slug?.slice(0, 2) ?? ".."}
                           </div>
-                          <div>
-                            <div class="font-medium text-sm text-gray-12">
+                          <div class="min-w-0">
+                            <div class="font-medium text-sm text-gray-12 truncate">
                               {s.title}
                             </div>
                             <div class="text-xs text-gray-10 flex items-center gap-2">
@@ -666,14 +769,24 @@ export default function DashboardView(props: DashboardViewProps) {
                               </Show>
                             </div>
                           </div>
-                        </div>
-                        <div class="flex items-center gap-4">
+                        </button>
+                        <div class="flex items-center gap-2 shrink-0">
+                          <button
+                            class="p-2 rounded-lg hover:bg-gray-5/50 text-gray-9 hover:text-gray-11 opacity-0 group-hover:opacity-100 transition-all"
+                            title="Save as template"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              props.saveSessionAsTemplate(s.id, s.title);
+                            }}
+                          >
+                            <ClipboardCopy size={16} />
+                          </button>
                           <span class="text-xs px-2 py-0.5 rounded-full border border-gray-7/60 text-gray-11 flex items-center gap-1.5">
                             <span class="w-1.5 h-1.5 rounded-full bg-current" />
                             {props.sessionStatusById[s.id] ?? "idle"}
                           </span>
                         </div>
-                      </button>
+                      </div>
                     )}
                   </For>
 
@@ -691,6 +804,7 @@ export default function DashboardView(props: DashboardViewProps) {
                 busy={props.busy}
                 workspaceTemplates={props.workspaceTemplates}
                 globalTemplates={props.globalTemplates}
+                starterTemplates={props.starterTemplates}
                 setTemplateDraftTitle={props.setTemplateDraftTitle}
                 setTemplateDraftDescription={props.setTemplateDraftDescription}
                 setTemplateDraftPrompt={props.setTemplateDraftPrompt}
@@ -698,6 +812,7 @@ export default function DashboardView(props: DashboardViewProps) {
                 openTemplateModal={props.openTemplateModal}
                 resetTemplateDraft={props.resetTemplateDraft}
                 runTemplate={props.runTemplate}
+                runStarterTemplate={props.runStarterTemplate}
                 deleteTemplate={props.deleteTemplate}
               />
             </Match>

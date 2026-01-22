@@ -34,6 +34,8 @@ export function createTemplateState(options: {
   const [templateDraftDescription, setTemplateDraftDescription] = createSignal("");
   const [templateDraftPrompt, setTemplateDraftPrompt] = createSignal("");
   const [templateDraftScope, setTemplateDraftScope] = createSignal<"workspace" | "global">("workspace");
+  const [templateDraftAutoRun, setTemplateDraftAutoRun] = createSignal(true);
+  const [templateModalError, setTemplateModalError] = createSignal<string | null>(null);
 
   const workspaceTemplates = createMemo(() => templates().filter((t) => t.scope === "workspace"));
   const globalTemplates = createMemo(() => templates().filter((t) => t.scope === "global"));
@@ -41,7 +43,7 @@ export function createTemplateState(options: {
   function openTemplateModal() {
     const seedTitle = options.selectedSession()?.title ?? "";
     const seedPrompt = options.lastPromptSent() || options.prompt();
-    const nextDraft = buildTemplateDraft({ seedTitle, seedPrompt, scope: "workspace" });
+    const nextDraft = buildTemplateDraft({ seedTitle, seedPrompt, scope: "workspace", autoRun: true });
 
     resetTemplateDraft(
       {
@@ -49,25 +51,30 @@ export function createTemplateState(options: {
         setDescription: setTemplateDraftDescription,
         setPrompt: setTemplateDraftPrompt,
         setScope: setTemplateDraftScope,
+        setAutoRun: setTemplateDraftAutoRun,
       },
       nextDraft.scope,
     );
 
     setTemplateDraftTitle(nextDraft.title);
     setTemplateDraftPrompt(nextDraft.prompt);
+    setTemplateDraftAutoRun(nextDraft.autoRun);
+    setTemplateModalError(null);
     setTemplateModalOpen(true);
   }
 
   async function saveTemplate() {
-    const draft = buildTemplateDraft({ scope: templateDraftScope() });
+    const draft = buildTemplateDraft({ scope: templateDraftScope(), autoRun: templateDraftAutoRun() });
     draft.title = templateDraftTitle().trim();
     draft.description = templateDraftDescription().trim();
     draft.prompt = templateDraftPrompt().trim();
+    draft.autoRun = templateDraftAutoRun();
 
     if (!draft.title || !draft.prompt) {
-      options.setError(t("app.error.title_prompt_required", currentLocale()));
+      setTemplateModalError(t("app.error.title_prompt_required", currentLocale()));
       return;
     }
+    setTemplateModalError(null);
 
     if (draft.scope === "workspace") {
       if (!isTauriRuntime()) {
@@ -160,19 +167,37 @@ export function createTemplateState(options: {
       await options.selectSession(session.id);
       options.setView("session");
 
-      const model = options.defaultModel();
+      // Check if autoRun is enabled (default to true for backwards compatibility)
+      const shouldAutoRun = template.autoRun !== false;
 
-      await c.session.promptAsync({
-        sessionID: session.id,
-        model,
-        variant: options.modelVariant() ?? undefined,
-        parts: [{ type: "text", text: template.prompt }],
-      });
+      if (shouldAutoRun) {
+        const model = options.defaultModel();
 
-      options.setSessionModelById((current) => ({
-        ...current,
-        [session.id]: model,
-      }));
+        await c.session.promptAsync({
+          sessionID: session.id,
+          model,
+          variant: options.modelVariant() ?? undefined,
+          parts: [{ type: "text", text: template.prompt }],
+        });
+
+        options.setSessionModelById((current) => ({
+          ...current,
+          [session.id]: model,
+        }));
+      } else {
+        // Just fill the prompt input without sending
+        if (typeof window !== "undefined") {
+          // We need a way to set the prompt in the session view
+          // The prompt state is managed in app.tsx, so we'll dispatch a custom event
+          window.dispatchEvent(
+            new CustomEvent("openwork:setPrompt", { detail: template.prompt })
+          );
+          // Focus the prompt input
+          requestAnimationFrame(() => {
+            window.dispatchEvent(new CustomEvent("openwork:focusPrompt"));
+          });
+        }
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : t("app.unknown_error", currentLocale());
       options.setError(addOpencodeCacheHint(message));
@@ -306,6 +331,10 @@ export function createTemplateState(options: {
     setTemplateDraftPrompt,
     templateDraftScope,
     setTemplateDraftScope,
+    templateDraftAutoRun,
+    setTemplateDraftAutoRun,
+    templateModalError,
+    setTemplateModalError,
     workspaceTemplates,
     globalTemplates,
     openTemplateModal,

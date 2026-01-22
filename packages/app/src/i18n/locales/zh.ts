@@ -159,6 +159,13 @@ export default {
   "templates.prompt_label": "提示词",
   "templates.prompt_placeholder": "编写您想重用的指令…",
   "templates.prompt_hint": "这将成为第一条用户消息。",
+  "templates.auto_run_label": "应用时自动运行",
+  "templates.auto_run_hint": "应用模板时自动发送提示词",
+  "templates.create_from_session": "从头创建或",
+  "templates.select_session": "选择之前的会话",
+  "templates.save_as_template": "保存为模板",
+  "templates.save_as_template_confirm": "从此会话创建模板？",
+  "templates.save_as_template_confirm_description": "将使用会话标题和第一条消息作为模板。",
 
   // ==================== Skills ====================
   "skills.title": "Skills",

@@ -31,10 +31,12 @@ import {
   DEMO_SEQUENCE_PREF_KEY,
   MCP_QUICK_CONNECT,
   MODEL_PREF_KEY,
+  STARTER_TEMPLATES,
   SUGGESTED_PLUGINS,
   THINKING_PREF_KEY,
   VARIANT_PREF_KEY,
 } from "./constants";
+import type { StarterTemplate } from "./constants";
 import { parseMcpServersFromContent } from "./mcp";
 import type {
   Client,
@@ -468,6 +470,10 @@ export default function App() {
     setTemplateDraftPrompt,
     templateDraftScope,
     setTemplateDraftScope,
+    templateDraftAutoRun,
+    setTemplateDraftAutoRun,
+    templateModalError,
+    setTemplateModalError,
     workspaceTemplates,
     globalTemplates,
     openTemplateModal,
@@ -1036,6 +1042,100 @@ export default function App() {
     }
   }
 
+  async function runStarterTemplate(template: StarterTemplate) {
+    if (template.autoRun) {
+      // Auto-run: Create session and send the prompt automatically
+      if (isDemoMode()) {
+        setPrompt(template.prompt);
+        setView("session");
+        return;
+      }
+
+      const c = client();
+      if (!c) return;
+
+      setBusy(true);
+      setBusyLabel("status.creating_task");
+      setBusyStartedAt(Date.now());
+      setError(null);
+
+      try {
+        const session = unwrap(
+          await c.session.create({
+            title: template.title,
+            directory: workspaceStore.activeWorkspaceRoot().trim(),
+          })
+        );
+        await loadSessions(workspaceStore.activeWorkspaceRoot().trim());
+        await selectSession(session.id);
+        setView("session");
+
+        const model = defaultModel();
+
+        await c.session.promptAsync({
+          sessionID: session.id,
+          model,
+          variant: modelVariant() ?? undefined,
+          parts: [{ type: "text", text: template.prompt }],
+        });
+
+        setSessionModelById((current) => ({
+          ...current,
+          [session.id]: model,
+        }));
+      } catch (e) {
+        const message = e instanceof Error ? e.message : t("app.unknown_error", currentLocale());
+        setError(addOpencodeCacheHint(message));
+      } finally {
+        setBusy(false);
+        setBusyLabel(null);
+        setBusyStartedAt(null);
+      }
+    } else {
+      // Not auto-run: Create session and fill the input but don't send
+      if (isDemoMode()) {
+        setPrompt(template.prompt);
+        setView("session");
+        return;
+      }
+
+      const c = client();
+      if (!c) return;
+
+      setBusy(true);
+      setBusyLabel("status.creating_task");
+      setBusyStartedAt(Date.now());
+      setError(null);
+      setCreatingSession(true);
+
+      try {
+        const session = unwrap(
+          await c.session.create({
+            title: template.title,
+            directory: workspaceStore.activeWorkspaceRoot().trim(),
+          })
+        );
+        await loadSessions(workspaceStore.activeWorkspaceRoot().trim());
+        await selectSession(session.id);
+        setPrompt(template.prompt);
+        setView("session");
+
+        // Focus the prompt input after view transition
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new CustomEvent("openwork:focusPrompt"));
+        });
+      } catch (e) {
+        const message = e instanceof Error ? e.message : t("app.unknown_error", currentLocale());
+        setError(addOpencodeCacheHint(message));
+      } finally {
+        setCreatingSession(false);
+        setBusy(false);
+        setBusyLabel(null);
+        setBusyStartedAt(null);
+      }
+    }
+  }
+
   async function createSessionAndOpen() {
     console.log("[DEBUG] createSessionAndOpen");
     console.log("[DEBUG] current baseUrl:", baseUrl());
@@ -1172,8 +1272,15 @@ export default function App() {
       applyThemeMode(isDark ? "dark" : "light");
     });
 
+    // Listen for setPrompt events from template system
+    const handleSetPrompt = (e: CustomEvent<string>) => {
+      setPrompt(e.detail);
+    };
+    window.addEventListener("openwork:setPrompt", handleSetPrompt as EventListener);
+
     onCleanup(() => {
       unsubscribeTheme();
+      window.removeEventListener("openwork:setPrompt", handleSetPrompt as EventListener);
     });
 
     createEffect(() => {
@@ -1635,6 +1742,42 @@ export default function App() {
     },
     openTemplateModal,
     runTemplate,
+    runStarterTemplate,
+    starterTemplates: STARTER_TEMPLATES,
+    saveSessionAsTemplate: async (sessionId: string, sessionTitle: string) => {
+      // Set the title from the session
+      setTemplateDraftTitle(sessionTitle);
+      setTemplateDraftDescription("");
+      setTemplateDraftScope("workspace");
+      setTemplateDraftAutoRun(true);
+      setTemplateModalError(null);
+
+      // Try to get the first user message from the session
+      const c = client();
+      if (c && !isDemoMode()) {
+        try {
+          const msgs = unwrap(await c.session.messages({ sessionID: sessionId }));
+          const firstUserMsg = msgs.find((m) => m.info.role === "user");
+          if (firstUserMsg) {
+            const textPart = firstUserMsg.parts?.find((p) => p.type === "text") as { type: "text"; text: string } | undefined;
+            if (textPart) {
+              setTemplateDraftPrompt(textPart.text);
+            } else {
+              setTemplateDraftPrompt("");
+            }
+          } else {
+            setTemplateDraftPrompt("");
+          }
+        } catch {
+          setTemplateDraftPrompt("");
+        }
+      } else {
+        setTemplateDraftPrompt("");
+      }
+
+      // Open the template modal
+      setTemplateModalOpen(true);
+    },
     deleteTemplate,
     refreshSkills: (options?: { force?: boolean }) => refreshSkills(options).catch(() => undefined),
     refreshPlugins: (scopeOverride?: PluginScope) =>
@@ -1790,7 +1933,9 @@ export default function App() {
                 }
               }}
               sessionStatus={selectedSessionStatus()}
-            error={error()}
+              error={error()}
+              starterTemplates={STARTER_TEMPLATES}
+              runStarterTemplate={runStarterTemplate}
           />
         </Match>
         <Match when={true}>
@@ -1852,12 +1997,47 @@ export default function App() {
         description={templateDraftDescription()}
         prompt={templateDraftPrompt()}
         scope={templateDraftScope()}
-        onClose={() => setTemplateModalOpen(false)}
+        autoRun={templateDraftAutoRun()}
+        error={templateModalError()}
+        sessions={activeSessions().map((s) => ({
+          id: s.id,
+          title: s.title,
+          firstUserMessage: undefined, // Will be loaded when selected
+        }))}
+        onClose={() => {
+          setTemplateModalOpen(false);
+          setTemplateModalError(null);
+        }}
         onSave={saveTemplate}
         onTitleChange={setTemplateDraftTitle}
         onDescriptionChange={setTemplateDraftDescription}
         onPromptChange={setTemplateDraftPrompt}
         onScopeChange={setTemplateDraftScope}
+        onAutoRunChange={setTemplateDraftAutoRun}
+        onSelectSession={async (sessionId) => {
+          // Load session details and populate the form
+          const session = activeSessions().find((s) => s.id === sessionId);
+          if (session) {
+            setTemplateDraftTitle(session.title);
+            setTemplateDraftDescription("");
+            // Try to get the first user message from the session
+            const c = client();
+            if (c && !isDemoMode()) {
+              try {
+                const msgs = unwrap(await c.session.messages({ sessionID: sessionId }));
+                const firstUserMsg = msgs.find((m) => m.info.role === "user");
+                if (firstUserMsg) {
+                  const textPart = firstUserMsg.parts?.find((p) => p.type === "text") as { type: "text"; text: string } | undefined;
+                  if (textPart) {
+                    setTemplateDraftPrompt(textPart.text);
+                  }
+                }
+              } catch {
+                // If we can't load messages, just use the title
+              }
+            }
+          }
+        }}
       />
 
       <WorkspacePicker

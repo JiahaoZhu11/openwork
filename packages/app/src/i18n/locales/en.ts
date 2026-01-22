@@ -158,6 +158,13 @@ export default {
   "templates.prompt_label": "Prompt",
   "templates.prompt_placeholder": "Write the instructions you want to reuse…",
   "templates.prompt_hint": "This becomes the first user message.",
+  "templates.auto_run_label": "Auto-run on apply",
+  "templates.auto_run_hint": "Send the prompt automatically when applying the template",
+  "templates.create_from_session": "Create from scratch or",
+  "templates.select_session": "select a previous session",
+  "templates.save_as_template": "Save as template",
+  "templates.save_as_template_confirm": "Create a template from this session?",
+  "templates.save_as_template_confirm_description": "The session title and first message will be used as the template.",
 
   // ==================== Skills ====================
   "skills.title": "Skills",

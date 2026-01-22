@@ -1,5 +1,6 @@
 import { For, Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 import type { Part } from "@opencode-ai/sdk/v2/client";
+import type { StarterTemplate } from "../constants";
 import type {
   ArtifactItem,
   DashboardTab,
@@ -13,6 +14,8 @@ import type {
 
 import {
   ArrowRight,
+  BarChart2,
+  Calendar,
   Check,
   ChevronDown,
   Circle,
@@ -20,6 +23,8 @@ import {
   FileText,
   Folder,
   HardDrive,
+  Layers,
+  Mail,
   Plus,
   Shield,
   Zap,
@@ -81,6 +86,8 @@ export type SessionViewProps = {
   safeStringify: (value: unknown) => string;
   error: string | null;
   sessionStatus: string;
+  starterTemplates: StarterTemplate[];
+  runStarterTemplate: (template: StarterTemplate) => void;
 };
 
 export default function SessionView(props: SessionViewProps) {
@@ -523,14 +530,61 @@ export default function SessionView(props: SessionViewProps) {
           <div class="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
             <div class="max-w-2xl mx-auto space-y-6 pb-32">
               <Show when={props.messages.length === 0}>
-                <div class="text-center py-20 space-y-4">
+                <div class="text-center py-20 space-y-6">
                   <div class="w-16 h-16 bg-gray-2 rounded-3xl mx-auto flex items-center justify-center border border-gray-6">
                     <Zap class="text-gray-7" />
                   </div>
-                  <h3 class="text-xl font-medium">Ready to work</h3>
-                  <p class="text-gray-10 text-sm max-w-xs mx-auto">
-                    Describe a task. I'll show progress and ask for permissions when needed.
-                  </p>
+                  <div class="space-y-2">
+                    <h3 class="text-xl font-medium">Ready to work</h3>
+                    <p class="text-gray-10 text-sm max-w-xs mx-auto">
+                      Describe a task. I'll show progress and ask for permissions when needed.
+                    </p>
+                  </div>
+
+                  {/* Starter Recommendations */}
+                  <Show when={props.starterTemplates.length > 0}>
+                    <div class="pt-8 max-w-md mx-auto">
+                      <div class="grid grid-cols-2 gap-3">
+                        <For each={props.starterTemplates.slice(0, 6)}>
+                          {(template) => {
+                            const getIcon = () => {
+                              switch (template.icon) {
+                                case "file":
+                                  return <FileText size={18} class="text-gray-10" />;
+                                case "data":
+                                  return <BarChart2 size={18} class="text-gray-10" />;
+                                case "prototype":
+                                  return <Layers size={18} class="text-gray-10" />;
+                                case "folder":
+                                  return <Folder size={18} class="text-gray-10" />;
+                                case "calendar":
+                                  return <Calendar size={18} class="text-gray-10" />;
+                                case "message":
+                                  return <Mail size={18} class="text-gray-10" />;
+                                default:
+                                  return <FileText size={18} class="text-gray-10" />;
+                              }
+                            };
+
+                            return (
+                              <button
+                                onClick={() => props.runStarterTemplate(template)}
+                                disabled={props.busy}
+                                class="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-2/50 hover:bg-gray-3 border border-gray-6/50 hover:border-gray-7 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <div class="w-9 h-9 rounded-lg bg-gray-3/60 flex items-center justify-center shrink-0 group-hover:bg-gray-4/60 transition-colors">
+                                  {getIcon()}
+                                </div>
+                                <span class="text-sm text-gray-11 group-hover:text-gray-12 transition-colors">
+                                  {template.title}
+                                </span>
+                              </button>
+                            );
+                          }}
+                        </For>
+                      </div>
+                    </div>
+                  </Show>
                 </div>
               </Show>
 

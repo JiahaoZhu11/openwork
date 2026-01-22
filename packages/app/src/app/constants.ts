@@ -60,6 +60,70 @@ export type McpDirectoryInfo = {
   oauth: boolean;
 };
 
+/**
+ * Starter templates shown as recommendations on dashboard and new session screens.
+ * These are suggestion cards that help new users understand what OpenWork can do.
+ */
+export type StarterTemplate = {
+  id: string;
+  title: string;
+  description: string;
+  prompt: string;
+  icon: "file" | "data" | "prototype" | "folder" | "calendar" | "message";
+  autoRun: boolean;
+};
+
+export const STARTER_TEMPLATES: StarterTemplate[] = [
+  {
+    id: "create-file",
+    title: "Create a file",
+    description: "Generate documents, scripts, or any file type",
+    prompt: "Help me create a new file. What kind of file would you like to create?",
+    icon: "file",
+    autoRun: false,
+  },
+  {
+    id: "crunch-data",
+    title: "Crunch data",
+    description: "Analyze spreadsheets, logs, or datasets",
+    prompt: "I need help analyzing some data. Please describe the data you want to analyze or share a file.",
+    icon: "data",
+    autoRun: false,
+  },
+  {
+    id: "make-prototype",
+    title: "Make a prototype",
+    description: "Build quick demos and proof of concepts",
+    prompt: "Let's create a prototype. What would you like to build?",
+    icon: "prototype",
+    autoRun: false,
+  },
+  {
+    id: "organize-files",
+    title: "Organize files",
+    description: "Sort, rename, and structure your files",
+    prompt: "I'll help you organize your files. Which folder would you like me to work with?",
+    icon: "folder",
+    autoRun: false,
+  },
+  {
+    id: "prep-meeting",
+    title: "Prep for a meeting",
+    description: "Create agendas and talking points",
+    prompt: "Let's prepare for your meeting. What's the meeting about and who will attend?",
+    icon: "calendar",
+    autoRun: false,
+  },
+  {
+    id: "draft-message",
+    title: "Draft a message",
+    description: "Write emails, messages, or announcements",
+    prompt: "I'll help you draft a message. What would you like to communicate and to whom?",
+    icon: "message",
+    autoRun: false,
+  },
+];
+
 export const MCP_QUICK_CONNECT: McpDirectoryInfo[] = [
   {
     name: "Notion",

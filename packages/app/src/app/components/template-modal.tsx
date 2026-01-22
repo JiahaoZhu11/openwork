@@ -1,4 +1,4 @@
-import { Show } from "solid-js";
+import { For, Show, createSignal } from "solid-js";
 
 import { X } from "lucide-solid";
 import { t, currentLocale } from "../../i18n";
@@ -6,27 +6,47 @@ import { t, currentLocale } from "../../i18n";
 import Button from "./button";
 import TextInput from "./text-input";
 
+export type SessionOption = {
+  id: string;
+  title: string;
+  firstUserMessage?: string;
+};
+
 export type TemplateModalProps = {
   open: boolean;
   title: string;
   description: string;
   prompt: string;
   scope: "workspace" | "global";
+  autoRun: boolean;
+  error: string | null;
+  sessions: SessionOption[];
   onClose: () => void;
   onSave: () => void;
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onPromptChange: (value: string) => void;
   onScopeChange: (value: "workspace" | "global") => void;
+  onAutoRunChange: (value: boolean) => void;
+  onSelectSession: (sessionId: string) => void;
 };
 
 export default function TemplateModal(props: TemplateModalProps) {
   const translate = (key: string) => t(key, currentLocale());
+  const [selectedSessionId, setSelectedSessionId] = createSignal("");
+
+  const handleSessionSelect = (e: Event) => {
+    const value = (e.target as HTMLSelectElement).value;
+    setSelectedSessionId(value);
+    if (value) {
+      props.onSelectSession(value);
+    }
+  };
 
   return (
     <Show when={props.open}>
       <div class="fixed inset-0 z-50 bg-gray-1/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-gray-2 border border-gray-6/70 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden">
+        <div class="bg-gray-2 border border-gray-6/70 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
           <div class="p-6">
             <div class="flex items-start justify-between gap-4">
               <div>
@@ -39,6 +59,25 @@ export default function TemplateModal(props: TemplateModalProps) {
             </div>
 
             <div class="mt-6 space-y-4">
+              {/* Session Selector */}
+              <Show when={props.sessions.length > 0}>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-gray-11 whitespace-nowrap">Create from scratch or</span>
+                  <select
+                    value={selectedSessionId()}
+                    onChange={handleSessionSelect}
+                    class="flex-1 rounded-xl bg-gray-2/60 px-3 py-2 text-sm text-gray-12 shadow-[0_0_0_1px_rgba(255,255,255,0.08)] focus:outline-none focus:ring-2 focus:ring-gray-6/20"
+                  >
+                    <option value="">select a previous session</option>
+                    <For each={props.sessions}>
+                      {(session) => (
+                        <option value={session.id}>{session.title}</option>
+                      )}
+                    </For>
+                  </select>
+                </div>
+              </Show>
+
               <TextInput
                 label={translate("templates.title_label")}
                 value={props.title}
@@ -88,13 +127,44 @@ export default function TemplateModal(props: TemplateModalProps) {
                 />
                 <div class="mt-1 text-xs text-gray-10">{translate("templates.prompt_hint")}</div>
               </label>
+
+              {/* Auto-run Toggle */}
+              <div class="flex items-center justify-between py-2">
+                <div>
+                  <div class="text-sm text-gray-12">{translate("templates.auto_run_label")}</div>
+                  <div class="text-xs text-gray-10">{translate("templates.auto_run_hint")}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => props.onAutoRunChange(!props.autoRun)}
+                  class={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    props.autoRun ? "bg-green-9" : "bg-gray-6"
+                  }`}
+                >
+                  <span
+                    class={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      props.autoRun ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
-            <div class="mt-6 flex justify-end gap-2">
-              <Button variant="outline" onClick={props.onClose}>
-                {translate("common.cancel")}
-              </Button>
-              <Button onClick={props.onSave}>{translate("common.save")}</Button>
+            <div class="mt-6 flex items-center justify-between gap-2">
+              {/* Error message on the left */}
+              <div class="flex-1">
+                <Show when={props.error}>
+                  <div class="text-sm text-red-11">{props.error}</div>
+                </Show>
+              </div>
+
+              {/* Buttons on the right */}
+              <div class="flex gap-2">
+                <Button variant="outline" onClick={props.onClose}>
+                  {translate("common.cancel")}
+                </Button>
+                <Button onClick={props.onSave}>{translate("common.save")}</Button>
+              </div>
             </div>
           </div>
         </div>
