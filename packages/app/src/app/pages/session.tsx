@@ -112,18 +112,6 @@ export default function SessionView(props: SessionViewProps) {
   // Flag to skip the next Enter key (set when composition ends, cleared on any keydown)
   let skipNextEnter = false;
 
-  // Debug state for keyboard events
-  const [debugKeyEvent, setDebugKeyEvent] = createSignal<{
-    key: string;
-    isComposing: boolean;
-    isComposingIME: boolean;
-    skipNextEnter: boolean;
-    eventType: string;
-    timestamp: number;
-    rawEvent: Record<string, unknown>;
-  } | null>(null);
-  const [debugExpanded, setDebugExpanded] = createSignal(false);
-
   let promptInputEl: HTMLTextAreaElement | undefined;
 
   createEffect(() => {
@@ -405,47 +393,15 @@ export default function SessionView(props: SessionViewProps) {
   };
 
   const handlePromptKeyDown = (event: KeyboardEvent) => {
-    // Debug: capture event details
-    const composingTracked = isComposingIME();
-    const shouldSkipEnter = skipNextEnter;
-    const debugInfo = {
-      key: event.key,
-      isComposing: event.isComposing,
-      isComposingIME: composingTracked,
-      skipNextEnter: shouldSkipEnter,
-      eventType: event.type,
-      timestamp: Date.now(),
-      rawEvent: {
-        key: event.key,
-        code: event.code,
-        isComposing: event.isComposing,
-        isComposingIME: composingTracked,
-        skipNextEnter: shouldSkipEnter,
-        shiftKey: event.shiftKey,
-        ctrlKey: event.ctrlKey,
-        altKey: event.altKey,
-        metaKey: event.metaKey,
-        repeat: event.repeat,
-        location: event.location,
-        charCode: event.charCode,
-        keyCode: event.keyCode,
-        which: event.which,
-      },
-    };
-    setDebugKeyEvent(debugInfo);
-    console.log("[KeyDown Debug]", debugInfo);
-
-    // During IME composition, let the browser handle all keys (including Enter to confirm selection)
-    // Use tracked state (isComposingIME) as event.isComposing is false for the confirming Enter key
-    if (composingTracked || event.isComposing) return;
+    // During IME composition, let the browser handle all keys
+    if (isComposingIME() || event.isComposing) return;
 
     // Skip the Enter key that was used to confirm IME composition
-    if (event.key === "Enter" && shouldSkipEnter) {
+    if (event.key === "Enter" && skipNextEnter) {
       skipNextEnter = false;
-      console.log("[KeyDown] Skipping Enter (was used to confirm IME)");
       return;
     }
-    // Clear the flag on any other keydown
+    // Clear the flag on any keydown
     skipNextEnter = false;
 
     // Shift+Enter allows newline
@@ -500,54 +456,6 @@ export default function SessionView(props: SessionViewProps) {
       }
     >
       <div class="h-screen flex flex-col bg-gray-1 text-gray-12 relative">
-        {/* Debug Panel */}
-        <div class="fixed top-4 right-4 z-[9999] bg-gray-2 border border-gray-6 rounded-xl shadow-2xl text-xs font-mono max-w-[320px]">
-          <button
-            class="w-full px-3 py-2 flex items-center justify-between text-left hover:bg-gray-3 rounded-t-xl"
-            onClick={() => setDebugExpanded(!debugExpanded())}
-          >
-            <span class="font-semibold text-gray-11">Keyboard Debug</span>
-            <ChevronDown
-              size={14}
-              class={`transition-transform ${debugExpanded() ? "rotate-180" : ""}`}
-            />
-          </button>
-          <div class="px-3 py-2 border-t border-gray-6 space-y-1">
-            <div class="flex justify-between">
-              <span class="text-gray-9">isComposing (event):</span>
-              <span class={debugKeyEvent()?.isComposing ? "text-amber-11" : "text-green-11"}>
-                {debugKeyEvent()?.isComposing?.toString() ?? "—"}
-              </span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-9">isComposingIME (tracked):</span>
-              <span class={isComposingIME() ? "text-amber-11 font-bold" : "text-green-11"}>
-                {isComposingIME().toString()}
-              </span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-9">skipNextEnter:</span>
-              <span class={debugKeyEvent()?.skipNextEnter ? "text-amber-11 font-bold" : "text-green-11"}>
-                {debugKeyEvent()?.skipNextEnter?.toString() ?? "—"}
-              </span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-9">key:</span>
-              <span class="text-gray-12">{debugKeyEvent()?.key ?? "—"}</span>
-            </div>
-          </div>
-          <Show when={debugExpanded()}>
-            <div class="px-3 py-2 border-t border-gray-6">
-              <div class="text-gray-9 mb-1">Raw Event:</div>
-              <pre class="text-[10px] text-gray-11 overflow-auto max-h-[200px] bg-gray-1 rounded p-2">
-                {debugKeyEvent()?.rawEvent
-                  ? JSON.stringify(debugKeyEvent()?.rawEvent, null, 2)
-                  : "No event yet"}
-              </pre>
-            </div>
-          </Show>
-        </div>
-
         <header class="h-16 border-b border-gray-6 flex items-center justify-between px-6 bg-gray-1/80 backdrop-blur-md z-10 sticky top-0">
           <div class="flex items-center gap-3">
             <Button
@@ -1061,13 +969,10 @@ export default function SessionView(props: SessionViewProps) {
                       onCompositionStart={() => {
                         setIsComposingIME(true);
                         skipNextEnter = false;
-                        console.log("[Composition] Start");
                       }}
                       onCompositionEnd={() => {
                         setIsComposingIME(false);
-                        // Flag to skip the next Enter key (the one that confirmed the composition)
                         skipNextEnter = true;
-                        console.log("[Composition] End - skipNextEnter set to true");
                       }}
                       placeholder="Ask OpenWork..."
                       class="flex-1 bg-transparent border-none outline-none p-0 text-gray-12 placeholder-gray-6 focus:ring-0 text-[15px] leading-relaxed resize-none min-h-[24px] max-h-[160px]"
