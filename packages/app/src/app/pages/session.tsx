@@ -107,10 +107,14 @@ export default function SessionView(props: SessionViewProps) {
   const [commandToast, setCommandToast] = createSignal<string | null>(null);
   const [commandIndex, setCommandIndex] = createSignal(0);
 
+  // Track IME composition state via events (more reliable than event.isComposing)
+  const [isComposingIME, setIsComposingIME] = createSignal(false);
+
   // Debug state for keyboard events
   const [debugKeyEvent, setDebugKeyEvent] = createSignal<{
     key: string;
     isComposing: boolean;
+    isComposingIME: boolean;
     eventType: string;
     timestamp: number;
     rawEvent: Record<string, unknown>;
@@ -399,15 +403,18 @@ export default function SessionView(props: SessionViewProps) {
 
   const handlePromptKeyDown = (event: KeyboardEvent) => {
     // Debug: capture event details
+    const composingTracked = isComposingIME();
     const debugInfo = {
       key: event.key,
       isComposing: event.isComposing,
+      isComposingIME: composingTracked,
       eventType: event.type,
       timestamp: Date.now(),
       rawEvent: {
         key: event.key,
         code: event.code,
         isComposing: event.isComposing,
+        isComposingIME: composingTracked,
         shiftKey: event.shiftKey,
         ctrlKey: event.ctrlKey,
         altKey: event.altKey,
@@ -423,7 +430,8 @@ export default function SessionView(props: SessionViewProps) {
     console.log("[KeyDown Debug]", debugInfo);
 
     // During IME composition, let the browser handle all keys (including Enter to confirm selection)
-    if (event.isComposing) return;
+    // Use tracked state (isComposingIME) as event.isComposing is false for the confirming Enter key
+    if (composingTracked || event.isComposing) return;
 
     // Shift+Enter allows newline
     if (event.key === "Enter" && event.shiftKey) return;
@@ -491,9 +499,15 @@ export default function SessionView(props: SessionViewProps) {
           </button>
           <div class="px-3 py-2 border-t border-gray-6 space-y-1">
             <div class="flex justify-between">
-              <span class="text-gray-9">isComposing:</span>
+              <span class="text-gray-9">isComposing (event):</span>
               <span class={debugKeyEvent()?.isComposing ? "text-amber-11" : "text-green-11"}>
                 {debugKeyEvent()?.isComposing?.toString() ?? "—"}
+              </span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-9">isComposingIME (tracked):</span>
+              <span class={isComposingIME() ? "text-amber-11 font-bold" : "text-green-11"}>
+                {isComposingIME().toString()}
               </span>
             </div>
             <div class="flex justify-between">
@@ -1023,6 +1037,14 @@ export default function SessionView(props: SessionViewProps) {
                         syncPromptHeight();
                       }}
                       onKeyDown={handlePromptKeyDown}
+                      onCompositionStart={() => {
+                        setIsComposingIME(true);
+                        console.log("[Composition] Start");
+                      }}
+                      onCompositionEnd={() => {
+                        setIsComposingIME(false);
+                        console.log("[Composition] End");
+                      }}
                       placeholder="Ask OpenWork..."
                       class="flex-1 bg-transparent border-none outline-none p-0 text-gray-12 placeholder-gray-6 focus:ring-0 text-[15px] leading-relaxed resize-none min-h-[24px] max-h-[160px]"
                     />
