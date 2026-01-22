@@ -865,7 +865,10 @@ export default function SessionView(props: SessionViewProps) {
 
         <div class="p-4 border-t border-gray-6 bg-gray-1 sticky bottom-0 z-20">
           <div class="max-w-2xl mx-auto">
-            <div class="bg-gray-2 border border-gray-6 rounded-2xl overflow-visible focus-within:ring-1 focus-within:ring-gray-7 transition-all shadow-2xl relative group/input">
+            <div
+              class="bg-gray-2 border border-gray-6 rounded-2xl overflow-visible focus-within:ring-1 focus-within:ring-gray-7 transition-all shadow-2xl relative group/input cursor-text"
+              onClick={() => promptInputEl?.focus()}
+            >
               <button
                 type="button"
                 class="absolute top-2 left-4 flex items-center gap-1 text-[10px] font-bold text-gray-7 hover:text-gray-11 transition-colors uppercase tracking-widest z-10"
@@ -948,14 +951,14 @@ export default function SessionView(props: SessionViewProps) {
                       }}
                       onKeyDown={handlePromptKeyDown}
                       placeholder="Ask OpenWork..."
-                      class="flex-1 bg-transparent border-none p-0 text-gray-12 placeholder-gray-6 focus:ring-0 text-[15px] leading-relaxed resize-none min-h-[24px] max-h-[160px]"
+                      class="flex-1 bg-transparent border-none outline-none p-0 text-gray-12 placeholder-gray-6 focus:ring-0 text-[15px] leading-relaxed resize-none min-h-[24px] max-h-[160px]"
                     />
 
                     <button
                       disabled={!props.prompt.trim() || props.busy}
                       onClick={handlePrimaryAction}
-                      class="p-1.5 bg-gray-12 text-gray-1 rounded-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:scale-75 shadow-lg shrink-0"
-                      title="Run"
+                      class="p-1.5 bg-gray-12 text-gray-1 rounded-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:scale-75 disabled:pointer-events-none shadow-lg shrink-0"
+                      title={props.prompt.trim() ? "Run" : undefined}
                     >
                       <ArrowRight size={18} />
                     </button>
