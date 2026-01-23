@@ -208,12 +208,12 @@ export default function Composer(props: ComposerProps) {
                   }}
                   onCompositionEnd={() => {
                     setIsComposingIME(false);
-                    // Clear the flag after current task completes
+                    // Clear the flag after current task completes and a small delay to allow the keydown event to fire
                     // If Enter confirmed IME, its keydown fires before this runs → skipped
-                    // If mouse confirmed IME, this clears the flag → next Enter works
+                    // If mouse/touch/spacebar confirmed IME, this clears the flag → next Enter works
                     setTimeout(() => {
                       skipNextEnter = false;
-                    }, 0);
+                    }, 100);
                   }}
                   placeholder="Ask OpenWork..."
                   class="flex-1 bg-transparent border-none p-0 text-gray-12 placeholder-gray-6 focus:ring-0 text-[15px] leading-relaxed resize-none min-h-[24px]"
