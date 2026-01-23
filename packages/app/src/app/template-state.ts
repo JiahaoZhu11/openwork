@@ -246,6 +246,7 @@ export function createTemplateState(options: {
             prompt: promptText,
             createdAt: Number.isFinite(createdAtValue) && createdAtValue > 0 ? createdAtValue : Date.now(),
             scope: "workspace",
+            autoRun: typeof meta.autoRun === "boolean" ? meta.autoRun : true,
           });
           return true;
         }
@@ -264,6 +265,7 @@ export function createTemplateState(options: {
           prompt: promptText,
           createdAt: typeof parsed.createdAt === "number" ? parsed.createdAt : Date.now(),
           scope: "workspace",
+          autoRun: typeof parsed.autoRun === "boolean" ? parsed.autoRun : true,
         });
 
         return true;

@@ -1899,11 +1899,13 @@ export default function App() {
         scope={templateDraftScope()}
         autoRun={templateDraftAutoRun()}
         error={templateModalError()}
-        sessions={activeSessions().map((s) => ({
-          id: s.id,
-          title: s.title,
-          firstUserMessage: undefined, // Will be loaded when selected
-        }))}
+        sessions={activeSessions()
+          .filter((s) => !s.title.startsWith("New session -"))
+          .map((s) => ({
+            id: s.id,
+            title: s.title,
+            firstUserMessage: undefined, // Will be loaded when selected
+          }))}
         onClose={() => {
           setTemplateModalOpen(false);
           setTemplateModalError(null);
