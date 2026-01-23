@@ -12,6 +12,7 @@ export type TemplateModalProps = {
   description: string;
   prompt: string;
   scope: "workspace" | "global";
+  error?: string | null;
   onClose: () => void;
   onSave: () => void;
   onTitleChange: (value: string) => void;
@@ -90,11 +91,21 @@ export default function TemplateModal(props: TemplateModalProps) {
               </label>
             </div>
 
-            <div class="mt-6 flex justify-end gap-2">
-              <Button variant="outline" onClick={props.onClose}>
-                {translate("common.cancel")}
-              </Button>
-              <Button onClick={props.onSave}>{translate("common.save")}</Button>
+            <div class="mt-6 flex items-center justify-between gap-2">
+              {/* Error message on the left */}
+              <div class="flex-1">
+                <Show when={props.error}>
+                  <div class="text-sm text-red-11">{props.error}</div>
+                </Show>
+              </div>
+
+              {/* Buttons on the right */}
+              <div class="flex gap-2">
+                <Button variant="outline" onClick={props.onClose}>
+                  {translate("common.cancel")}
+                </Button>
+                <Button onClick={props.onSave}>{translate("common.save")}</Button>
+              </div>
             </div>
           </div>
         </div>

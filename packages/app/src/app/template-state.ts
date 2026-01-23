@@ -34,6 +34,7 @@ export function createTemplateState(options: {
   const [templateDraftDescription, setTemplateDraftDescription] = createSignal("");
   const [templateDraftPrompt, setTemplateDraftPrompt] = createSignal("");
   const [templateDraftScope, setTemplateDraftScope] = createSignal<"workspace" | "global">("workspace");
+  const [templateModalError, setTemplateModalError] = createSignal<string | null>(null);
 
   const workspaceTemplates = createMemo(() => templates().filter((t) => t.scope === "workspace"));
   const globalTemplates = createMemo(() => templates().filter((t) => t.scope === "global"));
@@ -64,18 +65,19 @@ export function createTemplateState(options: {
     draft.description = templateDraftDescription().trim();
     draft.prompt = templateDraftPrompt().trim();
 
+    // Use modal-specific error for validation errors
     if (!draft.title || !draft.prompt) {
-      options.setError(t("app.error.title_prompt_required", currentLocale()));
+      setTemplateModalError(t("app.error.title_prompt_required", currentLocale()));
       return;
     }
 
     if (draft.scope === "workspace") {
       if (!isTauriRuntime()) {
-        options.setError(t("app.error.workspace_templates_desktop", currentLocale()));
+        setTemplateModalError(t("app.error.workspace_templates_desktop", currentLocale()));
         return;
       }
       if (!options.activeWorkspaceRoot().trim()) {
-        options.setError(t("app.error.pick_workspace_folder", currentLocale()));
+        setTemplateModalError(t("app.error.pick_workspace_folder", currentLocale()));
         return;
       }
     }
@@ -83,7 +85,7 @@ export function createTemplateState(options: {
     options.setBusy(true);
     options.setBusyLabel(draft.scope === "workspace" ? "status.saving_workspace_template" : "status.saving_template");
     options.setBusyStartedAt(Date.now());
-    options.setError(null);
+    setTemplateModalError(null);
 
     try {
       const template = createTemplateRecord(draft);
@@ -98,9 +100,10 @@ export function createTemplateState(options: {
       }
 
       setTemplateModalOpen(false);
+      setTemplateModalError(null);
     } catch (e) {
       const message = e instanceof Error ? e.message : safeStringify(e);
-      options.setError(addOpencodeCacheHint(message));
+      setTemplateModalError(addOpencodeCacheHint(message));
     } finally {
       options.setBusy(false);
       options.setBusyLabel(null);
@@ -306,6 +309,8 @@ export function createTemplateState(options: {
     setTemplateDraftPrompt,
     templateDraftScope,
     setTemplateDraftScope,
+    templateModalError,
+    setTemplateModalError,
     workspaceTemplates,
     globalTemplates,
     openTemplateModal,

@@ -642,6 +642,8 @@ export default function App() {
     setTemplateDraftPrompt,
     templateDraftScope,
     setTemplateDraftScope,
+    templateModalError,
+    setTemplateModalError,
     workspaceTemplates,
     globalTemplates,
     openTemplateModal,
@@ -2083,7 +2085,11 @@ export default function App() {
         description={templateDraftDescription()}
         prompt={templateDraftPrompt()}
         scope={templateDraftScope()}
-        onClose={() => setTemplateModalOpen(false)}
+        error={templateModalError()}
+        onClose={() => {
+          setTemplateModalOpen(false);
+          setTemplateModalError(null);
+        }}
         onSave={saveTemplate}
         onTitleChange={setTemplateDraftTitle}
         onDescriptionChange={setTemplateDraftDescription}
