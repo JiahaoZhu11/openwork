@@ -266,8 +266,10 @@ export function createWorkspaceStore(options: {
       setAuthorizedDirs([]);
     }
 
-    if (!isRemote) {
-      await options.loadWorkspaceTemplates({ workspaceRoot: next.path }).catch(() => undefined);
+    // Load workspace templates for all workspace types (local and remote)
+    const templateRoot = isRemote ? next.directory?.trim() : next.path;
+    if (templateRoot) {
+      await options.loadWorkspaceTemplates({ workspaceRoot: templateRoot }).catch(() => undefined);
     }
 
     if (!isRemote && workspaceChanged && options.client() && !wasHostMode) {
