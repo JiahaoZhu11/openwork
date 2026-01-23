@@ -481,6 +481,8 @@ export default function App() {
     loadWorkspaceTemplates,
   } = templateState;
 
+  const [templateSessionLoading, setTemplateSessionLoading] = createSignal(false);
+
   loadWorkspaceTemplatesRef = loadWorkspaceTemplates;
 
   const systemState = createSystemState({
@@ -1899,16 +1901,22 @@ export default function App() {
         scope={templateDraftScope()}
         autoRun={templateDraftAutoRun()}
         error={templateModalError()}
+        loadingSession={templateSessionLoading()}
         sessions={activeSessions()
-          .filter((s) => !s.title.startsWith("New session -"))
+          // Filter out sessions that haven't been used (updated within 5s of creation = empty)
+          .filter((s) => {
+            const hasActivity = s.time.updated - s.time.created > 5000;
+            return hasActivity;
+          })
           .map((s) => ({
             id: s.id,
             title: s.title,
-            firstUserMessage: undefined, // Will be loaded when selected
+            firstUserMessage: undefined,
           }))}
         onClose={() => {
           setTemplateModalOpen(false);
           setTemplateModalError(null);
+          setTemplateSessionLoading(false);
         }}
         onSave={saveTemplate}
         onTitleChange={setTemplateDraftTitle}
@@ -1917,26 +1925,30 @@ export default function App() {
         onScopeChange={setTemplateDraftScope}
         onAutoRunChange={setTemplateDraftAutoRun}
         onSelectSession={async (sessionId) => {
-          // Load session details and populate the form
           const session = activeSessions().find((s) => s.id === sessionId);
-          if (session) {
-            setTemplateDraftTitle(session.title);
-            setTemplateDraftDescription("");
-            // Try to get the first user message from the session
-            const c = client();
-            if (c && !isDemoMode()) {
-              try {
-                const msgs = unwrap(await c.session.messages({ sessionID: sessionId }));
-                const firstUserMsg = msgs.find((m) => m.info.role === "user");
-                if (firstUserMsg) {
-                  const textPart = firstUserMsg.parts?.find((p) => p.type === "text") as { type: "text"; text: string } | undefined;
-                  if (textPart) {
-                    setTemplateDraftPrompt(textPart.text);
-                  }
+          if (!session) return;
+
+          // Set title immediately (sync)
+          setTemplateDraftTitle(session.title);
+          setTemplateDraftDescription("");
+
+          // Load first user message (async)
+          const c = client();
+          if (c && !isDemoMode()) {
+            setTemplateSessionLoading(true);
+            try {
+              const msgs = unwrap(await c.session.messages({ sessionID: sessionId }));
+              const firstUserMsg = msgs.find((m) => m.info.role === "user");
+              if (firstUserMsg) {
+                const textPart = firstUserMsg.parts?.find((p) => p.type === "text") as { type: "text"; text: string } | undefined;
+                if (textPart) {
+                  setTemplateDraftPrompt(textPart.text);
                 }
-              } catch {
-                // If we can't load messages, just use the title
               }
+            } catch {
+              // If we can't load messages, keep existing prompt
+            } finally {
+              setTemplateSessionLoading(false);
             }
           }
         }}

@@ -1,6 +1,6 @@
-import { For, Show, createSignal } from "solid-js";
+import { For, Show, createSignal, createEffect } from "solid-js";
 
-import { X } from "lucide-solid";
+import { X, Loader2 } from "lucide-solid";
 import { t, currentLocale } from "../../i18n";
 
 import Button from "./button";
@@ -21,6 +21,7 @@ export type TemplateModalProps = {
   autoRun: boolean;
   error: string | null;
   sessions: SessionOption[];
+  loadingSession: boolean;
   onClose: () => void;
   onSave: () => void;
   onTitleChange: (value: string) => void;
@@ -34,6 +35,13 @@ export type TemplateModalProps = {
 export default function TemplateModal(props: TemplateModalProps) {
   const translate = (key: string) => t(key, currentLocale());
   const [selectedSessionId, setSelectedSessionId] = createSignal("");
+
+  // Reset selectedSessionId when modal opens
+  createEffect(() => {
+    if (props.open) {
+      setSelectedSessionId("");
+    }
+  });
 
   const handleSessionSelect = (e: Event) => {
     const value = (e.target as HTMLSelectElement).value;
@@ -66,7 +74,8 @@ export default function TemplateModal(props: TemplateModalProps) {
                   <select
                     value={selectedSessionId()}
                     onChange={handleSessionSelect}
-                    class="flex-1 h-8 rounded-lg bg-gray-2 border border-gray-6 px-2 py-1 text-xs text-gray-12 hover:border-gray-7 focus:outline-none focus:border-gray-7 cursor-pointer"
+                    disabled={props.loadingSession}
+                    class="flex-1 h-8 rounded-lg bg-gray-2 border border-gray-6 px-2 py-1 text-xs text-gray-12 hover:border-gray-7 focus:outline-none focus:border-gray-7 cursor-pointer disabled:opacity-50"
                   >
                     <option value="">select a previous session</option>
                     <For each={props.sessions}>
@@ -75,6 +84,9 @@ export default function TemplateModal(props: TemplateModalProps) {
                       )}
                     </For>
                   </select>
+                  <Show when={props.loadingSession}>
+                    <Loader2 size={14} class="text-gray-10 animate-spin shrink-0" />
+                  </Show>
                 </div>
               </Show>
 
