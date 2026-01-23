@@ -595,64 +595,71 @@ export default function SessionView(props: SessionViewProps) {
             </style>
 
             <Show when={props.messages.length === 0}>
-              <div class="text-center py-20 space-y-4">
-                <div class="w-16 h-16 bg-gray-2 rounded-3xl mx-auto flex items-center justify-center border border-gray-6">
-                  <Zap class="text-gray-7" />
+              <div class="flex flex-col h-full">
+                <div class="text-center py-20 space-y-4">
+                  <div class="w-16 h-16 bg-gray-2 rounded-3xl mx-auto flex items-center justify-center border border-gray-6">
+                    <Zap class="text-gray-7" />
+                  </div>
+                  <h3 class="text-xl font-medium">Ready to work</h3>
+                  <p class="text-gray-10 text-sm max-w-xs mx-auto">
+                    Describe a task. I'll show progress and ask for permissions when needed.
+                  </p>
                 </div>
-                <h3 class="text-xl font-medium">Ready to work</h3>
-                <p class="text-gray-10 text-sm max-w-xs mx-auto">
-                  Describe a task. I'll show progress and ask for permissions when needed.
-                </p>
-              </div>
 
-              {/* Quick Start Templates */}
-              <Show when={props.workspaceTemplates.length > 0}>
-                <div class="mt-8 px-4 max-w-3xl mx-auto">
-                  <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-medium text-gray-11 uppercase tracking-wider">
-                      Quick Start Templates
-                    </h3>
-                    <button
-                      class="text-xs text-gray-10 hover:text-gray-12 transition-colors"
-                      onClick={() => {
-                        props.setView("dashboard");
-                        props.setTab("templates");
-                      }}
-                    >
-                      View all
-                    </button>
+                {/* Spacer */}
+                <div class="flex-1" />
+
+                {/* Quick Start Templates */}
+                <Show when={props.workspaceTemplates.length > 0}>
+                  <div class="mb-12 px-4 max-w-3xl mx-auto">
+                    <div class="flex items-center justify-between mb-4">
+                      <h3 class="text-sm font-medium text-gray-11 uppercase tracking-wider">
+                        Quick Start Templates
+                      </h3>
+                      <button
+                        class="text-xs text-gray-10 hover:text-gray-12 transition-colors"
+                        onClick={() => {
+                          props.setView("dashboard");
+                          props.setTab("templates");
+                        }}
+                      >
+                        View all
+                      </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <For each={props.workspaceTemplates.slice(0, 3)}>
+                        {(t) => (
+                          <button
+                            onClick={() => props.applyTemplate(t)}
+                            class="group p-5 rounded-2xl bg-gray-2/30 border border-gray-6/50 hover:bg-gray-2 hover:border-gray-7 transition-all text-left"
+                          >
+                            <div class="w-10 h-10 rounded-full bg-gray-4 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                              <FileText size={20} class="text-indigo-11" />
+                            </div>
+                            <h4 class="font-medium text-gray-12 mb-1">{t.title}</h4>
+                            <p class="text-sm text-gray-10">
+                              {t.description || "Run a saved workflow"}
+                            </p>
+                          </button>
+                        )}
+                      </For>
+                    </div>
                   </div>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <For each={props.workspaceTemplates.slice(0, 3)}>
-                      {(t) => (
-                        <button
-                          onClick={() => props.applyTemplate(t)}
-                          class="group p-5 rounded-2xl bg-gray-2/30 border border-gray-6/50 hover:bg-gray-2 hover:border-gray-7 transition-all text-left"
-                        >
-                          <div class="w-10 h-10 rounded-full bg-gray-4 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <FileText size={20} class="text-indigo-11" />
-                          </div>
-                          <h4 class="font-medium text-gray-12 mb-1">{t.title}</h4>
-                          <p class="text-sm text-gray-10">
-                            {t.description || "Run a saved workflow"}
-                          </p>
-                        </button>
-                      )}
-                    </For>
-                  </div>
-                </div>
-              </Show>
+                </Show>
+              </div>
             </Show>
 
-            <MessageList
-              messages={props.messages}
-              artifacts={props.artifacts}
-              developerMode={props.developerMode}
-              showThinking={props.showThinking}
-              expandedStepIds={props.expandedStepIds}
-              setExpandedStepIds={props.setExpandedStepIds}
-              onOpenArtifact={handleOpenArtifact}
-            />
+            <Show when={props.messages.length > 0}>
+              <MessageList
+                messages={props.messages}
+                artifacts={props.artifacts}
+                developerMode={props.developerMode}
+                showThinking={props.showThinking}
+                expandedStepIds={props.expandedStepIds}
+                setExpandedStepIds={props.setExpandedStepIds}
+                onOpenArtifact={handleOpenArtifact}
+              />
+            </Show>
 
             <div ref={(el) => (messagesEndEl = el)} />
           </div>
