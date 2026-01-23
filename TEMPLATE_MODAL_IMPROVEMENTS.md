@@ -10,8 +10,8 @@ This document describes the improvements made to the template modal feature. Use
 
 **Current State:**
 - Original branch has all changes implemented and working
-- Main branch does not have these changes
-- Need to create a new branch from main and re-implement
+- The latest dev branch (synced with upstream) does not have these changes
+- Need to create a new branch from the latest dev branch and re-implement
 
 ## Session Name Suggestion
 `template-modal-improvements` or `fix-template-modal-ux`
