@@ -9,10 +9,12 @@ import type {
   TodoItem,
   View,
   WorkspaceDisplay,
+  WorkspaceTemplate,
 } from "../types";
 
 import {
   ArrowRight,
+  FileText,
   HardDrive,
   Shield,
   Zap,
@@ -92,6 +94,8 @@ export type SessionViewProps = {
   setSessionAgent: (sessionId: string, agent: string | null) => void;
   saveSession: (sessionId: string) => Promise<string>;
   sessionStatusById: Record<string, string>;
+  workspaceTemplates: WorkspaceTemplate[];
+  applyTemplate: (template: WorkspaceTemplate) => void;
 };
 
 export default function SessionView(props: SessionViewProps) {
@@ -600,6 +604,44 @@ export default function SessionView(props: SessionViewProps) {
                   Describe a task. I'll show progress and ask for permissions when needed.
                 </p>
               </div>
+
+              {/* Quick Start Templates */}
+              <Show when={props.workspaceTemplates.length > 0}>
+                <div class="mt-8 px-4 max-w-3xl mx-auto">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-11 uppercase tracking-wider">
+                      Quick Start Templates
+                    </h3>
+                    <button
+                      class="text-xs text-gray-10 hover:text-gray-12 transition-colors"
+                      onClick={() => {
+                        props.setView("dashboard");
+                        props.setTab("templates");
+                      }}
+                    >
+                      View all
+                    </button>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <For each={props.workspaceTemplates.slice(0, 3)}>
+                      {(t) => (
+                        <button
+                          onClick={() => props.applyTemplate(t)}
+                          class="group p-5 rounded-2xl bg-gray-2/30 border border-gray-6/50 hover:bg-gray-2 hover:border-gray-7 transition-all text-left"
+                        >
+                          <div class="w-10 h-10 rounded-full bg-gray-4 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <FileText size={20} class="text-indigo-11" />
+                          </div>
+                          <h4 class="font-medium text-gray-12 mb-1">{t.title}</h4>
+                          <p class="text-sm text-gray-10">
+                            {t.description || "Run a saved workflow"}
+                          </p>
+                        </button>
+                      )}
+                    </For>
+                  </div>
+                </div>
+              </Show>
             </Show>
 
             <MessageList

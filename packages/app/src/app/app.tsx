@@ -2025,6 +2025,8 @@ export default function App() {
               sessionStatus={selectedSessionStatus()}
               renameSession={renameSessionTitle}
             error={error()}
+              workspaceTemplates={workspaceTemplates()}
+              applyTemplate={applyTemplate}
           />
         </Match>
         <Match when={true}>
