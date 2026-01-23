@@ -482,6 +482,7 @@ export default function App() {
   } = templateState;
 
   const [templateSessionLoading, setTemplateSessionLoading] = createSignal(false);
+  const [templateSelectedSessionId, setTemplateSelectedSessionId] = createSignal("");
 
   loadWorkspaceTemplatesRef = loadWorkspaceTemplates;
 
@@ -1646,9 +1647,13 @@ export default function App() {
       setTemplateDraftPrompt("");
       setTemplateDraftScope(scope);
     },
-    openTemplateModal,
+    openTemplateModal: () => {
+      setTemplateSelectedSessionId("");
+      openTemplateModal();
+    },
     runTemplate,
     saveSessionAsTemplate: async (sessionId: string, sessionTitle: string) => {
+      setTemplateSelectedSessionId("");
       // Set the title from the session
       setTemplateDraftTitle(sessionTitle);
       setTemplateDraftDescription("");
@@ -1902,21 +1907,26 @@ export default function App() {
         autoRun={templateDraftAutoRun()}
         error={templateModalError()}
         loadingSession={templateSessionLoading()}
+        selectedSessionId={templateSelectedSessionId()}
+        developerMode={developerMode()}
         sessions={activeSessions()
           // Filter out sessions that haven't been used (updated within 5s of creation = empty)
+          // AND only include sessions from the current workspace
           .filter((s) => {
             const hasActivity = s.time.updated - s.time.created > 5000;
-            return hasActivity;
+            const currentRoot = workspaceStore.activeWorkspaceRoot().trim();
+            const isCurrentWorkspace = !currentRoot || s.directory === currentRoot;
+            return hasActivity && isCurrentWorkspace;
           })
           .map((s) => ({
             id: s.id,
             title: s.title,
-            firstUserMessage: undefined,
           }))}
         onClose={() => {
           setTemplateModalOpen(false);
           setTemplateModalError(null);
           setTemplateSessionLoading(false);
+          setTemplateSelectedSessionId("");
         }}
         onSave={saveTemplate}
         onTitleChange={setTemplateDraftTitle}
@@ -1925,31 +1935,62 @@ export default function App() {
         onScopeChange={setTemplateDraftScope}
         onAutoRunChange={setTemplateDraftAutoRun}
         onSelectSession={async (sessionId) => {
+          // If clearing selection, just reset the state
+          if (!sessionId) {
+            setTemplateSelectedSessionId("");
+            return;
+          }
+
           const session = activeSessions().find((s) => s.id === sessionId);
           if (!session) return;
 
-          // Set title immediately (sync)
-          setTemplateDraftTitle(session.title);
-          setTemplateDraftDescription("");
+          // Store previous state for rollback on error
+          const previousSessionId = templateSelectedSessionId();
+          const previousTitle = templateDraftTitle();
+          const previousDescription = templateDraftDescription();
+          const previousPrompt = templateDraftPrompt();
 
-          // Load first user message (async)
+          // Set selection immediately to show in dropdown
+          setTemplateSelectedSessionId(sessionId);
+
+          // Load first user message (async) then set title and prompt together
           const c = client();
           if (c && !isDemoMode()) {
             setTemplateSessionLoading(true);
+            setTemplateModalError(null);
             try {
               const msgs = unwrap(await c.session.messages({ sessionID: sessionId }));
               const firstUserMsg = msgs.find((m) => m.info.role === "user");
+
+              // Extract prompt from first user message (empty string if none)
+              let promptText = "";
               if (firstUserMsg) {
                 const textPart = firstUserMsg.parts?.find((p) => p.type === "text") as { type: "text"; text: string } | undefined;
                 if (textPart) {
-                  setTemplateDraftPrompt(textPart.text);
+                  promptText = textPart.text;
                 }
               }
-            } catch {
-              // If we can't load messages, keep existing prompt
+
+              // Set title and prompt together after async load
+              setTemplateDraftTitle(session.title);
+              setTemplateDraftDescription("");
+              setTemplateDraftPrompt(promptText);
+            } catch (err) {
+              // On error: show error, reset to previous selection, don't change inputs
+              const message = err instanceof Error ? err.message : "Failed to load session messages";
+              setTemplateModalError(message);
+              setTemplateSelectedSessionId(previousSessionId);
+              setTemplateDraftTitle(previousTitle);
+              setTemplateDraftDescription(previousDescription);
+              setTemplateDraftPrompt(previousPrompt);
             } finally {
               setTemplateSessionLoading(false);
             }
+          } else {
+            // No client - just set title and clear prompt
+            setTemplateDraftTitle(session.title);
+            setTemplateDraftDescription("");
+            setTemplateDraftPrompt("");
           }
         }}
       />

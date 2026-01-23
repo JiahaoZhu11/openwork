@@ -1,4 +1,4 @@
-import { For, Show, createSignal, createEffect } from "solid-js";
+import { For, Show, createEffect } from "solid-js";
 
 import { X, Loader2 } from "lucide-solid";
 import { t, currentLocale } from "../../i18n";
@@ -9,7 +9,6 @@ import TextInput from "./text-input";
 export type SessionOption = {
   id: string;
   title: string;
-  firstUserMessage?: string;
 };
 
 export type TemplateModalProps = {
@@ -22,6 +21,8 @@ export type TemplateModalProps = {
   error: string | null;
   sessions: SessionOption[];
   loadingSession: boolean;
+  selectedSessionId: string;
+  developerMode: boolean;
   onClose: () => void;
   onSave: () => void;
   onTitleChange: (value: string) => void;
@@ -34,21 +35,32 @@ export type TemplateModalProps = {
 
 export default function TemplateModal(props: TemplateModalProps) {
   const translate = (key: string) => t(key, currentLocale());
-  const [selectedSessionId, setSelectedSessionId] = createSignal("");
-
-  // Reset selectedSessionId when modal opens
-  createEffect(() => {
-    if (props.open) {
-      setSelectedSessionId("");
-    }
-  });
 
   const handleSessionSelect = (e: Event) => {
     const value = (e.target as HTMLSelectElement).value;
-    setSelectedSessionId(value);
-    if (value) {
-      props.onSelectSession(value);
+    props.onSelectSession(value);
+  };
+
+  // Reset select when user manually edits title, description, or prompt
+  const handleManualTitleChange = (value: string) => {
+    if (props.selectedSessionId) {
+      props.onSelectSession(""); // Reset selection
     }
+    props.onTitleChange(value);
+  };
+
+  const handleManualDescriptionChange = (value: string) => {
+    if (props.selectedSessionId) {
+      props.onSelectSession(""); // Reset selection
+    }
+    props.onDescriptionChange(value);
+  };
+
+  const handleManualPromptChange = (value: string) => {
+    if (props.selectedSessionId) {
+      props.onSelectSession(""); // Reset selection
+    }
+    props.onPromptChange(value);
   };
 
   return (
@@ -72,7 +84,7 @@ export default function TemplateModal(props: TemplateModalProps) {
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-gray-11 whitespace-nowrap">Create from scratch or</span>
                   <select
-                    value={selectedSessionId()}
+                    value={props.selectedSessionId}
                     onChange={handleSessionSelect}
                     disabled={props.loadingSession}
                     class="flex-1 h-8 rounded-lg bg-gray-2 border border-gray-6 px-2 py-1 text-xs text-gray-12 hover:border-gray-7 focus:outline-none focus:border-gray-7 cursor-pointer disabled:opacity-50"
@@ -93,14 +105,14 @@ export default function TemplateModal(props: TemplateModalProps) {
               <TextInput
                 label={translate("templates.title_label")}
                 value={props.title}
-                onInput={(e) => props.onTitleChange(e.currentTarget.value)}
+                onInput={(e) => handleManualTitleChange(e.currentTarget.value)}
                 placeholder={translate("templates.title_placeholder")}
               />
 
               <TextInput
                 label={translate("templates.description_label")}
                 value={props.description}
-                onInput={(e) => props.onDescriptionChange(e.currentTarget.value)}
+                onInput={(e) => handleManualDescriptionChange(e.currentTarget.value)}
                 placeholder={translate("templates.description_placeholder")}
               />
 
@@ -134,7 +146,7 @@ export default function TemplateModal(props: TemplateModalProps) {
                 <textarea
                   class="w-full min-h-40 rounded-xl bg-gray-2/60 px-3 py-2 text-sm text-gray-12 placeholder:text-gray-10 shadow-[0_0_0_1px_rgba(255,255,255,0.08)] focus:outline-none focus:ring-2 focus:ring-gray-6/20"
                   value={props.prompt}
-                  onInput={(e) => props.onPromptChange(e.currentTarget.value)}
+                  onInput={(e) => handleManualPromptChange(e.currentTarget.value)}
                   placeholder={translate("templates.prompt_placeholder")}
                 />
                 <div class="mt-1 text-xs text-gray-10">{translate("templates.prompt_hint")}</div>
@@ -178,6 +190,20 @@ export default function TemplateModal(props: TemplateModalProps) {
             </div>
           </div>
         </div>
+
+        {/* Debug Panel - Only shown in developer mode */}
+        <Show when={props.developerMode}>
+          <div class="fixed bottom-4 right-4 bg-gray-1 border border-gray-6 rounded-lg p-3 text-xs font-mono max-w-xs shadow-lg z-[60]">
+            <div class="text-gray-11 font-semibold mb-2">Template Modal Debug</div>
+            <div class="space-y-1 text-gray-10">
+              <div><span class="text-gray-11">selectedSessionId:</span> {props.selectedSessionId || "(none)"}</div>
+              <div><span class="text-gray-11">title:</span> {props.title.slice(0, 30) || "(empty)"}{props.title.length > 30 ? "..." : ""}</div>
+              <div><span class="text-gray-11">prompt:</span> {props.prompt.slice(0, 30) || "(empty)"}{props.prompt.length > 30 ? "..." : ""}</div>
+              <div><span class="text-gray-11">loading:</span> {props.loadingSession ? "true" : "false"}</div>
+              <div><span class="text-gray-11">error:</span> {props.error || "(none)"}</div>
+            </div>
+          </div>
+        </Show>
       </div>
     </Show>
   );
