@@ -1916,13 +1916,10 @@ export default function App() {
         loadingSession={templateSessionLoading()}
         selectedSessionId={templateSelectedSessionId()}
         developerMode={developerMode()}
-        sessions={workspaceFilteredSessions()
-          // Filter out sessions that haven't been used (updated within 5s of creation = empty)
-          .filter((s) => s.time.updated - s.time.created > 5000)
-          .map((s) => ({
-            id: s.id,
-            title: s.title,
-          }))}
+        sessions={workspaceFilteredSessions().map((s) => ({
+          id: s.id,
+          title: s.title,
+        }))}
         onClose={() => {
           setTemplateModalOpen(false);
           setTemplateModalError(null);
