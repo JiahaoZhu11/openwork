@@ -70,6 +70,7 @@ import { currentLocale, setLocale, t, type Language } from "../i18n";
 import {
   isWindowsPlatform,
   lastUserModelFromMessages,
+  normalizeDirectoryPath,
   parseModelRef,
   readModePreference,
   safeStringify,
@@ -1914,8 +1915,9 @@ export default function App() {
           // AND only include sessions from the current workspace
           .filter((s) => {
             const hasActivity = s.time.updated - s.time.created > 5000;
-            const currentRoot = workspaceStore.activeWorkspaceRoot().trim();
-            const isCurrentWorkspace = !currentRoot || s.directory === currentRoot;
+            const currentRoot = normalizeDirectoryPath(workspaceStore.activeWorkspaceRoot());
+            const sessionDir = normalizeDirectoryPath(s.directory);
+            const isCurrentWorkspace = !currentRoot || sessionDir === currentRoot;
             return hasActivity && isCurrentWorkspace;
           })
           .map((s) => ({
