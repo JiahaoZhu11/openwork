@@ -1917,7 +1917,8 @@ export default function App() {
             const hasActivity = s.time.updated - s.time.created > 5000;
             const currentRoot = normalizeDirectoryPath(workspaceStore.activeWorkspaceRoot());
             const sessionDir = normalizeDirectoryPath(s.directory);
-            const isCurrentWorkspace = !currentRoot || sessionDir === currentRoot;
+            // Strictly require workspace match - don't show sessions if no workspace selected
+            const isCurrentWorkspace = currentRoot && sessionDir === currentRoot;
             return hasActivity && isCurrentWorkspace;
           })
           .map((s) => ({
