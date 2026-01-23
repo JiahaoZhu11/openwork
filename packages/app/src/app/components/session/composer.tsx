@@ -24,6 +24,11 @@ export default function Composer(props: ComposerProps) {
   let textareaRef: HTMLTextAreaElement | undefined;
   const [commandIndex, setCommandIndex] = createSignal(0);
 
+  // Track IME composition state via events (more reliable than event.isComposing)
+  const [isComposingIME, setIsComposingIME] = createSignal(false);
+  // Flag to skip the next Enter key (set when composition ends, cleared on any keydown)
+  let skipNextEnter = false;
+
   const commandMenuOpen = createMemo(() => {
     return props.prompt.startsWith("/") && !props.busy;
   });
@@ -48,8 +53,19 @@ export default function Composer(props: ComposerProps) {
   });
 
   const handleKeyDown = (event: KeyboardEvent) => {
+    // During IME composition, let the browser handle all keys
+    if (isComposingIME() || event.isComposing) return;
+
+    // Skip the Enter key that was used to confirm IME composition
+    if (event.key === "Enter" && skipNextEnter) {
+      skipNextEnter = false;
+      return;
+    }
+    // Clear the flag on any keydown
+    skipNextEnter = false;
+
+    // Shift+Enter allows newline
     if (event.key === "Enter" && event.shiftKey) return;
-    if (event.isComposing && event.key !== "Enter") return;
 
     if (commandMenuOpen()) {
       const matches = props.commandMatches;
@@ -187,6 +203,14 @@ export default function Composer(props: ComposerProps) {
                   value={props.prompt}
                   onInput={(e) => props.setPrompt(e.currentTarget.value)}
                   onKeyDown={handleKeyDown}
+                  onCompositionStart={() => {
+                    setIsComposingIME(true);
+                    skipNextEnter = false;
+                  }}
+                  onCompositionEnd={() => {
+                    setIsComposingIME(false);
+                    skipNextEnter = true;
+                  }}
                   placeholder="Ask OpenWork..."
                   class="flex-1 bg-transparent border-none p-0 text-gray-12 placeholder-gray-6 focus:ring-0 text-[15px] leading-relaxed resize-none min-h-[24px]"
                 />
