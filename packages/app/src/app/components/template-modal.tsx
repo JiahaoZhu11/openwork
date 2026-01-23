@@ -1,10 +1,11 @@
-import { For, Show } from "solid-js";
+import { Show } from "solid-js";
 
 import { X, Loader2 } from "lucide-solid";
 import { t, currentLocale } from "../../i18n";
 
 import Button from "./button";
 import TextInput from "./text-input";
+import Select from "./select";
 
 export type SessionOption = {
   id: string;
@@ -33,10 +34,9 @@ export type TemplateModalProps = {
 export default function TemplateModal(props: TemplateModalProps) {
   const translate = (key: string) => t(key, currentLocale());
 
-  const handleSessionSelect = (e: Event) => {
-    const value = (e.target as HTMLSelectElement).value;
-    props.onSelectSession(value);
-  };
+  // Convert sessions to Select options format
+  const sessionOptions = () =>
+    props.sessions.map((s) => ({ value: s.id, label: s.title }));
 
   // Reset select when user manually edits title, description, or prompt
   const handleManualTitleChange = (value: string) => {
@@ -80,19 +80,14 @@ export default function TemplateModal(props: TemplateModalProps) {
               <Show when={props.sessions.length > 0}>
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-gray-11 whitespace-nowrap">Create from scratch or</span>
-                  <select
+                  <Select
+                    options={sessionOptions()}
                     value={props.selectedSessionId}
-                    onChange={handleSessionSelect}
+                    placeholder="select a previous session"
                     disabled={props.loadingSession}
-                    class="flex-1 h-8 rounded-lg bg-gray-2 border border-gray-6 px-2 py-1 text-xs text-gray-12 hover:border-gray-7 focus:outline-none focus:border-gray-7 cursor-pointer disabled:opacity-50"
-                  >
-                    <option value="">select a previous session</option>
-                    <For each={props.sessions}>
-                      {(session) => (
-                        <option value={session.id}>{session.title}</option>
-                      )}
-                    </For>
-                  </select>
+                    onChange={props.onSelectSession}
+                    class="flex-1"
+                  />
                   <Show when={props.loadingSession}>
                     <Loader2 size={14} class="text-gray-10 animate-spin shrink-0" />
                   </Show>
@@ -104,6 +99,7 @@ export default function TemplateModal(props: TemplateModalProps) {
                 value={props.title}
                 onInput={(e) => handleManualTitleChange(e.currentTarget.value)}
                 placeholder={translate("templates.title_placeholder")}
+                disabled={props.loadingSession}
               />
 
               <TextInput
@@ -111,6 +107,7 @@ export default function TemplateModal(props: TemplateModalProps) {
                 value={props.description}
                 onInput={(e) => handleManualDescriptionChange(e.currentTarget.value)}
                 placeholder={translate("templates.description_placeholder")}
+                disabled={props.loadingSession}
               />
 
               <div class="grid grid-cols-2 gap-2">
@@ -119,9 +116,10 @@ export default function TemplateModal(props: TemplateModalProps) {
                     props.scope === "workspace"
                       ? "bg-gray-12/10 text-gray-12 border-gray-6/20"
                       : "text-gray-11 border-gray-6 hover:text-gray-12"
-                  }`}
-                  onClick={() => props.onScopeChange("workspace")}
+                  } ${props.loadingSession ? "opacity-50 cursor-not-allowed" : ""}`}
+                  onClick={() => !props.loadingSession && props.onScopeChange("workspace")}
                   type="button"
+                  disabled={props.loadingSession}
                 >
                   {translate("templates.workspace")}
                 </button>
@@ -130,9 +128,10 @@ export default function TemplateModal(props: TemplateModalProps) {
                     props.scope === "global"
                       ? "bg-gray-12/10 text-gray-12 border-gray-6/20"
                       : "text-gray-11 border-gray-6 hover:text-gray-12"
-                  }`}
-                  onClick={() => props.onScopeChange("global")}
+                  } ${props.loadingSession ? "opacity-50 cursor-not-allowed" : ""}`}
+                  onClick={() => !props.loadingSession && props.onScopeChange("global")}
                   type="button"
+                  disabled={props.loadingSession}
                 >
                   {translate("templates.global")}
                 </button>
@@ -141,10 +140,13 @@ export default function TemplateModal(props: TemplateModalProps) {
               <label class="block">
                 <div class="mb-1 text-xs font-medium text-gray-11">{translate("templates.prompt_label")}</div>
                 <textarea
-                  class="w-full min-h-40 rounded-xl bg-gray-2/60 px-3 py-2 text-sm text-gray-12 placeholder:text-gray-10 shadow-[0_0_0_1px_rgba(255,255,255,0.08)] focus:outline-none focus:ring-2 focus:ring-gray-6/20"
+                  class={`w-full min-h-40 rounded-xl bg-gray-2/60 px-3 py-2 text-sm text-gray-12 placeholder:text-gray-10 shadow-[0_0_0_1px_rgba(255,255,255,0.08)] focus:outline-none focus:ring-2 focus:ring-gray-6/20 ${
+                    props.loadingSession ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                   value={props.prompt}
                   onInput={(e) => handleManualPromptChange(e.currentTarget.value)}
                   placeholder={translate("templates.prompt_placeholder")}
+                  disabled={props.loadingSession}
                 />
                 <div class="mt-1 text-xs text-gray-10">{translate("templates.prompt_hint")}</div>
               </label>
@@ -160,10 +162,12 @@ export default function TemplateModal(props: TemplateModalProps) {
 
               {/* Buttons on the right */}
               <div class="flex gap-2">
-                <Button variant="outline" onClick={props.onClose}>
+                <Button variant="outline" onClick={props.onClose} disabled={props.loadingSession}>
                   {translate("common.cancel")}
                 </Button>
-                <Button onClick={props.onSave}>{translate("common.save")}</Button>
+                <Button onClick={props.onSave} disabled={props.loadingSession}>
+                  {translate("common.save")}
+                </Button>
               </div>
             </div>
           </div>
