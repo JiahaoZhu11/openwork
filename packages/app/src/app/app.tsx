@@ -2155,7 +2155,7 @@ export default function App() {
               // Set title and prompt together after async load
               setTemplateDraftTitle(session.title);
               setTemplateDraftDescription("");
-              setTemplateDraftPrompt(promptText);
+              setTemplateDraftPrompt(promptText.trim());
             } catch (err) {
               // On error: show error, reset to previous selection, don't change inputs
               const message = err instanceof Error ? err.message : "Failed to load session messages";
