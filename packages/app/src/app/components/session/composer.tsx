@@ -26,7 +26,7 @@ export default function Composer(props: ComposerProps) {
 
   // Track IME composition state via events (more reliable than event.isComposing)
   const [isComposingIME, setIsComposingIME] = createSignal(false);
-  // Flag to skip the next Enter key (set when composition ends, cleared on any keydown)
+  // Flag to skip the Enter key that confirms IME composition
   let skipNextEnter = false;
 
   const commandMenuOpen = createMemo(() => {
@@ -57,12 +57,10 @@ export default function Composer(props: ComposerProps) {
     if (isComposingIME() || event.isComposing) return;
 
     // Skip the Enter key that was used to confirm IME composition
+    // (flag is cleared by onCompositionEnd's setTimeout)
     if (event.key === "Enter" && skipNextEnter) {
-      skipNextEnter = false;
       return;
     }
-    // Clear the flag on any keydown
-    skipNextEnter = false;
 
     // Shift+Enter allows newline
     if (event.key === "Enter" && event.shiftKey) return;
@@ -205,11 +203,17 @@ export default function Composer(props: ComposerProps) {
                   onKeyDown={handleKeyDown}
                   onCompositionStart={() => {
                     setIsComposingIME(true);
-                    skipNextEnter = false;
+                    // The Enter that confirms IME composition should be skipped
+                    skipNextEnter = true;
                   }}
                   onCompositionEnd={() => {
                     setIsComposingIME(false);
-                    skipNextEnter = true;
+                    // Clear the flag after current task completes
+                    // If Enter confirmed IME, its keydown fires before this runs → skipped
+                    // If mouse confirmed IME, this clears the flag → next Enter works
+                    setTimeout(() => {
+                      skipNextEnter = false;
+                    }, 0);
                   }}
                   placeholder="Ask OpenWork..."
                   class="flex-1 bg-transparent border-none p-0 text-gray-12 placeholder-gray-6 focus:ring-0 text-[15px] leading-relaxed resize-none min-h-[24px]"
