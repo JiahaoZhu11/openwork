@@ -69,6 +69,7 @@ import {
 } from "./utils";
 import { currentLocale, setLocale, t, type Language } from "../i18n";
 import {
+  filterSessionsByWorkspace,
   isWindowsPlatform,
   lastUserModelFromMessages,
   parseModelRef,
@@ -651,6 +652,10 @@ export default function App() {
     loadWorkspaceTemplates,
   } = templateState;
 
+  const [templateSessionLoading, setTemplateSessionLoading] = createSignal(false);
+  const [templateSelectedSessionId, setTemplateSelectedSessionId] = createSignal("");
+  const [templateModalError, setTemplateModalError] = createSignal<string | null>(null);
+
   loadWorkspaceTemplatesRef = loadWorkspaceTemplates;
 
   const systemState = createSystemState({
@@ -735,6 +740,11 @@ export default function App() {
   );
   const activePermissionMemo = createMemo(() =>
     isDemoMode() ? null : activePermission()
+  );
+
+  // Shared filtered sessions - same logic used by Sessions page, Dashboard, and Template modal
+  const workspaceFilteredSessions = createMemo(() =>
+    filterSessionsByWorkspace(activeSessions(), workspaceStore.activeWorkspaceRoot())
   );
 
   const [expandedStepIds, setExpandedStepIds] = createSignal<Set<string>>(
@@ -1820,7 +1830,7 @@ export default function App() {
     setCreateWorkspaceOpen: workspaceStore.setCreateWorkspaceOpen,
     createWorkspaceFlow: workspaceStore.createWorkspaceFlow,
     pickWorkspaceFolder: workspaceStore.pickWorkspaceFolder,
-    sessions: activeSessions().map((s) => ({
+    sessions: workspaceFilteredSessions().map((s) => ({
       id: s.id,
       slug: s.slug,
       title: s.title,
@@ -1843,7 +1853,11 @@ export default function App() {
       setTemplateDraftPrompt("");
       setTemplateDraftScope(scope);
     },
-    openTemplateModal,
+    openTemplateModal: () => {
+      setTemplateSelectedSessionId("");
+      setTemplateModalError(null);
+      openTemplateModal();
+    },
     runTemplate,
     deleteTemplate,
     refreshSkills: (options?: { force?: boolean }) => refreshSkills(options).catch(() => undefined),
@@ -2083,12 +2097,83 @@ export default function App() {
         description={templateDraftDescription()}
         prompt={templateDraftPrompt()}
         scope={templateDraftScope()}
-        onClose={() => setTemplateModalOpen(false)}
+        error={templateModalError()}
+        loadingSession={templateSessionLoading()}
+        selectedSessionId={templateSelectedSessionId()}
+        sessions={workspaceFilteredSessions().map((s) => ({
+          id: s.id,
+          title: s.title,
+        }))}
+        onClose={() => {
+          setTemplateModalOpen(false);
+          setTemplateModalError(null);
+          setTemplateSessionLoading(false);
+          setTemplateSelectedSessionId("");
+        }}
         onSave={saveTemplate}
         onTitleChange={setTemplateDraftTitle}
         onDescriptionChange={setTemplateDraftDescription}
         onPromptChange={setTemplateDraftPrompt}
         onScopeChange={setTemplateDraftScope}
+        onSelectSession={async (sessionId) => {
+          // If clearing selection, just reset the state
+          if (!sessionId) {
+            setTemplateSelectedSessionId("");
+            return;
+          }
+
+          const session = activeSessions().find((s) => s.id === sessionId);
+          if (!session) return;
+
+          // Store previous state for rollback on error
+          const previousSessionId = templateSelectedSessionId();
+          const previousTitle = templateDraftTitle();
+          const previousDescription = templateDraftDescription();
+          const previousPrompt = templateDraftPrompt();
+
+          // Set selection immediately to show in dropdown
+          setTemplateSelectedSessionId(sessionId);
+
+          // Load first user message (async) then set title and prompt together
+          const c = client();
+          if (c && !isDemoMode()) {
+            setTemplateSessionLoading(true);
+            setTemplateModalError(null);
+            try {
+              const msgs = unwrap(await c.session.messages({ sessionID: sessionId }));
+              const firstUserMsg = msgs.find((m) => m.info.role === "user");
+
+              // Extract prompt from first user message (empty string if none)
+              let promptText = "";
+              if (firstUserMsg) {
+                const textPart = firstUserMsg.parts?.find((p) => p.type === "text") as { type: "text"; text: string } | undefined;
+                if (textPart) {
+                  promptText = textPart.text;
+                }
+              }
+
+              // Set title and prompt together after async load
+              setTemplateDraftTitle(session.title);
+              setTemplateDraftDescription("");
+              setTemplateDraftPrompt(promptText);
+            } catch (err) {
+              // On error: show error, reset to previous selection, don't change inputs
+              const message = err instanceof Error ? err.message : "Failed to load session messages";
+              setTemplateModalError(message);
+              setTemplateSelectedSessionId(previousSessionId);
+              setTemplateDraftTitle(previousTitle);
+              setTemplateDraftDescription(previousDescription);
+              setTemplateDraftPrompt(previousPrompt);
+            } finally {
+              setTemplateSessionLoading(false);
+            }
+          } else {
+            // No client - just set title and clear prompt
+            setTemplateDraftTitle(session.title);
+            setTemplateDraftDescription("");
+            setTemplateDraftPrompt("");
+          }
+        }}
       />
 
       <WorkspacePicker

@@ -1,10 +1,15 @@
-import { Show } from "solid-js";
+import { For, Show } from "solid-js";
 
-import { X } from "lucide-solid";
+import { X, Loader2 } from "lucide-solid";
 import { t, currentLocale } from "../../i18n";
 
 import Button from "./button";
 import TextInput from "./text-input";
+
+export type SessionOption = {
+  id: string;
+  title: string;
+};
 
 export type TemplateModalProps = {
   open: boolean;
@@ -12,21 +17,53 @@ export type TemplateModalProps = {
   description: string;
   prompt: string;
   scope: "workspace" | "global";
+  error: string | null;
+  sessions: SessionOption[];
+  loadingSession: boolean;
+  selectedSessionId: string;
   onClose: () => void;
   onSave: () => void;
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onPromptChange: (value: string) => void;
   onScopeChange: (value: "workspace" | "global") => void;
+  onSelectSession: (sessionId: string) => void;
 };
 
 export default function TemplateModal(props: TemplateModalProps) {
   const translate = (key: string) => t(key, currentLocale());
 
+  const handleSessionSelect = (e: Event) => {
+    const value = (e.target as HTMLSelectElement).value;
+    props.onSelectSession(value);
+  };
+
+  // Reset select when user manually edits title, description, or prompt
+  const handleManualTitleChange = (value: string) => {
+    if (props.selectedSessionId) {
+      props.onSelectSession(""); // Reset selection
+    }
+    props.onTitleChange(value);
+  };
+
+  const handleManualDescriptionChange = (value: string) => {
+    if (props.selectedSessionId) {
+      props.onSelectSession(""); // Reset selection
+    }
+    props.onDescriptionChange(value);
+  };
+
+  const handleManualPromptChange = (value: string) => {
+    if (props.selectedSessionId) {
+      props.onSelectSession(""); // Reset selection
+    }
+    props.onPromptChange(value);
+  };
+
   return (
     <Show when={props.open}>
       <div class="fixed inset-0 z-50 bg-gray-1/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-gray-2 border border-gray-6/70 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden">
+        <div class="bg-gray-2 border border-gray-6/70 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
           <div class="p-6">
             <div class="flex items-start justify-between gap-4">
               <div>
@@ -39,17 +76,40 @@ export default function TemplateModal(props: TemplateModalProps) {
             </div>
 
             <div class="mt-6 space-y-4">
+              {/* Session Selector */}
+              <Show when={props.sessions.length > 0}>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-gray-11 whitespace-nowrap">Create from scratch or</span>
+                  <select
+                    value={props.selectedSessionId}
+                    onChange={handleSessionSelect}
+                    disabled={props.loadingSession}
+                    class="flex-1 h-8 rounded-lg bg-gray-2 border border-gray-6 px-2 py-1 text-xs text-gray-12 hover:border-gray-7 focus:outline-none focus:border-gray-7 cursor-pointer disabled:opacity-50"
+                  >
+                    <option value="">select a previous session</option>
+                    <For each={props.sessions}>
+                      {(session) => (
+                        <option value={session.id}>{session.title}</option>
+                      )}
+                    </For>
+                  </select>
+                  <Show when={props.loadingSession}>
+                    <Loader2 size={14} class="text-gray-10 animate-spin shrink-0" />
+                  </Show>
+                </div>
+              </Show>
+
               <TextInput
                 label={translate("templates.title_label")}
                 value={props.title}
-                onInput={(e) => props.onTitleChange(e.currentTarget.value)}
+                onInput={(e) => handleManualTitleChange(e.currentTarget.value)}
                 placeholder={translate("templates.title_placeholder")}
               />
 
               <TextInput
                 label={translate("templates.description_label")}
                 value={props.description}
-                onInput={(e) => props.onDescriptionChange(e.currentTarget.value)}
+                onInput={(e) => handleManualDescriptionChange(e.currentTarget.value)}
                 placeholder={translate("templates.description_placeholder")}
               />
 
@@ -83,18 +143,28 @@ export default function TemplateModal(props: TemplateModalProps) {
                 <textarea
                   class="w-full min-h-40 rounded-xl bg-gray-2/60 px-3 py-2 text-sm text-gray-12 placeholder:text-gray-10 shadow-[0_0_0_1px_rgba(255,255,255,0.08)] focus:outline-none focus:ring-2 focus:ring-gray-6/20"
                   value={props.prompt}
-                  onInput={(e) => props.onPromptChange(e.currentTarget.value)}
+                  onInput={(e) => handleManualPromptChange(e.currentTarget.value)}
                   placeholder={translate("templates.prompt_placeholder")}
                 />
                 <div class="mt-1 text-xs text-gray-10">{translate("templates.prompt_hint")}</div>
               </label>
             </div>
 
-            <div class="mt-6 flex justify-end gap-2">
-              <Button variant="outline" onClick={props.onClose}>
-                {translate("common.cancel")}
-              </Button>
-              <Button onClick={props.onSave}>{translate("common.save")}</Button>
+            <div class="mt-6 flex items-center justify-between gap-2">
+              {/* Error message on the left */}
+              <div class="flex-1">
+                <Show when={props.error}>
+                  <div class="text-sm text-red-11">{props.error}</div>
+                </Show>
+              </div>
+
+              {/* Buttons on the right */}
+              <div class="flex gap-2">
+                <Button variant="outline" onClick={props.onClose}>
+                  {translate("common.cancel")}
+                </Button>
+                <Button onClick={props.onSave}>{translate("common.save")}</Button>
+              </div>
             </div>
           </div>
         </div>
