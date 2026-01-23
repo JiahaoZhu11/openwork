@@ -2,6 +2,17 @@
 
 This document describes the improvements made to the template modal feature. Use this as a reference for re-implementing these changes on a fresh branch.
 
+## Context
+
+**Original Branch:** `claude/add-recommendation-feature-9Y1Qg`
+
+**Why New Session:** The original branch became deprecated/stale, but the changes are still needed. This document preserves the implementation details so they can be re-applied cleanly.
+
+**Current State:**
+- Original branch has all changes implemented and working
+- Main branch does not have these changes
+- Need to create a new branch from main and re-implement
+
 ## Session Name Suggestion
 `template-modal-improvements` or `fix-template-modal-ux`
 
