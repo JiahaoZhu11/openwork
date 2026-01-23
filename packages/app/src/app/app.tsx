@@ -68,6 +68,7 @@ import {
 } from "./utils";
 import { currentLocale, setLocale, t, type Language } from "../i18n";
 import {
+  filterSessionsByWorkspace,
   isWindowsPlatform,
   lastUserModelFromMessages,
   normalizeDirectoryPath,
@@ -569,6 +570,11 @@ export default function App() {
   );
   const activePermissionMemo = createMemo(() =>
     isDemoMode() ? null : activePermission()
+  );
+
+  // Shared filtered sessions - same logic used by Sessions page, Dashboard, and Template modal
+  const workspaceFilteredSessions = createMemo(() =>
+    filterSessionsByWorkspace(activeSessions(), workspaceStore.activeWorkspaceRoot())
   );
 
   const [expandedStepIds, setExpandedStepIds] = createSignal<Set<string>>(
@@ -1625,7 +1631,7 @@ export default function App() {
     setCreateWorkspaceOpen: workspaceStore.setCreateWorkspaceOpen,
     createWorkspaceFlow: workspaceStore.createWorkspaceFlow,
     pickWorkspaceFolder: workspaceStore.pickWorkspaceFolder,
-    sessions: activeSessions().map((s) => ({
+    sessions: workspaceFilteredSessions().map((s) => ({
       id: s.id,
       slug: s.slug,
       title: s.title,
@@ -1802,7 +1808,7 @@ export default function App() {
               createSessionAndOpen={createSessionAndOpen}
               sendPromptAsync={sendPrompt}
               newTaskDisabled={newTaskDisabled()}
-              sessions={activeSessions().map((session) => ({
+              sessions={workspaceFilteredSessions().map((session) => ({
                 id: session.id,
                 title: session.title,
                 slug: session.slug,
@@ -1910,17 +1916,9 @@ export default function App() {
         loadingSession={templateSessionLoading()}
         selectedSessionId={templateSelectedSessionId()}
         developerMode={developerMode()}
-        sessions={activeSessions()
+        sessions={workspaceFilteredSessions()
           // Filter out sessions that haven't been used (updated within 5s of creation = empty)
-          // AND only include sessions from the current workspace
-          .filter((s) => {
-            const hasActivity = s.time.updated - s.time.created > 5000;
-            const currentRoot = normalizeDirectoryPath(workspaceStore.activeWorkspaceRoot());
-            const sessionDir = normalizeDirectoryPath(s.directory);
-            // Strictly require workspace match - don't show sessions if no workspace selected
-            const isCurrentWorkspace = currentRoot && sessionDir === currentRoot;
-            return hasActivity && isCurrentWorkspace;
-          })
+          .filter((s) => s.time.updated - s.time.created > 5000)
           .map((s) => ({
             id: s.id,
             title: s.title,
