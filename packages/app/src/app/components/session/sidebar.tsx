@@ -24,6 +24,7 @@ export type SidebarProps = {
   onSelectSession: (id: string) => void;
   sessionStatusById: Record<string, string>;
   onCreateSession: () => void;
+  onCreateTemplateFromSession?: (sessionId: string) => void;
   newTaskDisabled: boolean;
 };
 
@@ -71,40 +72,59 @@ export default function SessionSidebar(props: SidebarProps) {
           <div class="space-y-1">
             <For each={props.sessions.slice(0, 8)}>
               {(session) => (
-                <button
-                  class={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                <div
+                  class={`group w-full text-left px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
                     session.id === props.selectedSessionId
                       ? "bg-gray-3 text-gray-12 font-medium"
                       : "text-gray-11 hover:text-gray-12 hover:bg-gray-2"
                   }`}
-                  onClick={() => props.onSelectSession(session.id)}
+                  onClick={(e) => {
+                    // Don't open session if clicking the template button
+                    if ((e.target as HTMLElement).closest('[data-template-btn]')) return;
+                    props.onSelectSession(session.id);
+                  }}
                 >
                   <div class="flex items-center justify-between gap-2 w-full overflow-hidden">
                     <span class="truncate">{session.title}</span>
-                    <Show
-                      when={
-                        props.sessionStatusById[session.id] &&
-                        props.sessionStatusById[session.id] !== "idle"
-                      }
-                    >
-                      <span
-                        class={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full border flex items-center gap-1 ${
-                          props.sessionStatusById[session.id] === "running"
-                            ? "border-amber-7/50 text-amber-11 bg-amber-2/50"
-                            : "border-gray-7/50 text-gray-10 bg-gray-2/50"
-                        }`}
+                    <div class="flex items-center gap-1 shrink-0">
+                      <Show when={props.onCreateTemplateFromSession}>
+                        <button
+                          data-template-btn
+                          class="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-6/50 text-gray-10 hover:text-gray-12 transition-all"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            props.onCreateTemplateFromSession?.(session.id);
+                          }}
+                          title="Create template from session"
+                        >
+                          <FileText size={12} />
+                        </button>
+                      </Show>
+                      <Show
+                        when={
+                          props.sessionStatusById[session.id] &&
+                          props.sessionStatusById[session.id] !== "idle"
+                        }
                       >
-                        <div
-                          class={`w-1 h-1 rounded-full ${
+                        <span
+                          class={`text-[10px] px-1.5 py-0.5 rounded-full border flex items-center gap-1 ${
                             props.sessionStatusById[session.id] === "running"
-                              ? "bg-amber-9 animate-pulse"
-                              : "bg-gray-9"
+                              ? "border-amber-7/50 text-amber-11 bg-amber-2/50"
+                              : "border-gray-7/50 text-gray-10 bg-gray-2/50"
                           }`}
-                        />
-                      </span>
-                    </Show>
+                        >
+                          <div
+                            class={`w-1 h-1 rounded-full ${
+                              props.sessionStatusById[session.id] === "running"
+                                ? "bg-amber-9 animate-pulse"
+                                : "bg-gray-9"
+                            }`}
+                          />
+                        </span>
+                      </Show>
+                    </div>
                   </div>
-                </button>
+                </div>
               )}
             </For>
           </div>

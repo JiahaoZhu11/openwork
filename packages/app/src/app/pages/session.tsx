@@ -92,6 +92,7 @@ export type SessionViewProps = {
   setSessionAgent: (sessionId: string, agent: string | null) => void;
   saveSession: (sessionId: string) => Promise<string>;
   sessionStatusById: Record<string, string>;
+  onCreateTemplateFromSession?: (sessionId: string) => void;
 };
 
 export default function SessionView(props: SessionViewProps) {
@@ -570,6 +571,7 @@ export default function SessionView(props: SessionViewProps) {
                }}
                sessionStatusById={props.sessionStatusById}
                onCreateSession={props.createSessionAndOpen}
+               onCreateTemplateFromSession={props.onCreateTemplateFromSession}
                newTaskDisabled={props.newTaskDisabled}
              />
           </aside>

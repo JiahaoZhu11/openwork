@@ -178,6 +178,15 @@ export function normalizeDirectoryPath(input?: string | null) {
   return isWindowsPlatform() ? normalized.toLowerCase() : normalized;
 }
 
+export function filterSessionsByWorkspace<T extends { directory?: string | null }>(
+  sessions: T[],
+  workspaceRoot: string | null | undefined,
+): T[] {
+  const normalizedRoot = normalizeDirectoryPath(workspaceRoot);
+  if (!normalizedRoot) return sessions;
+  return sessions.filter((s) => normalizeDirectoryPath(s.directory) === normalizedRoot);
+}
+
 export function normalizeEvent(raw: unknown): OpencodeEvent | null {
   if (!raw || typeof raw !== "object") {
     return null;

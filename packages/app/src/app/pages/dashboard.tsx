@@ -80,6 +80,7 @@ export type DashboardViewProps = {
   resetTemplateDraft?: (scope?: "workspace" | "global") => void;
   runTemplate: (template: WorkspaceTemplate) => void;
   deleteTemplate: (templateId: string) => void;
+  createTemplateFromSession: (sessionId: string) => void;
   refreshSkills: (options?: { force?: boolean }) => void;
   refreshPlugins: (scopeOverride?: PluginScope) => void;
   refreshMcpServers: () => void;
@@ -561,8 +562,8 @@ export default function DashboardView(props: DashboardViewProps) {
                 <div class="bg-gray-2/30 border border-gray-6/50 rounded-2xl overflow-hidden">
                   <For each={props.sessions.slice(0, 3)}>
                     {(s, idx) => (
-                      <button
-                        class={`w-full p-4 flex items-center justify-between hover:bg-gray-4/50 transition-colors text-left ${
+                      <div
+                        class={`group w-full p-4 flex items-center justify-between hover:bg-gray-4/50 transition-colors cursor-pointer ${
                           idx() !== Math.min(props.sessions.length, 3) - 1
                             ? "border-b border-gray-6/50"
                             : ""
@@ -570,7 +571,9 @@ export default function DashboardView(props: DashboardViewProps) {
                         onPointerDown={(e) => {
                           e.currentTarget.setPointerCapture?.(e.pointerId);
                         }}
-                        onPointerUp={() => {
+                        onPointerUp={(e) => {
+                          // Don't open session if clicking the template button
+                          if ((e.target as HTMLElement).closest('[data-template-btn]')) return;
                           openSessionFromList(s.id);
                         }}
                       >
@@ -579,7 +582,7 @@ export default function DashboardView(props: DashboardViewProps) {
                             #{s.slug?.slice(0, 2) ?? ".."}
                           </div>
                           <div>
-                            <div class="font-medium text-sm text-gray-12">
+                            <div class="font-medium text-sm text-gray-12 text-left">
                               {s.title}
                             </div>
                             <div class="text-xs text-gray-10 flex items-center gap-2">
@@ -600,13 +603,24 @@ export default function DashboardView(props: DashboardViewProps) {
                             </div>
                           </div>
                         </div>
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                          <button
+                            data-template-btn
+                            class="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-gray-6/50 text-gray-10 hover:text-gray-12 transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              props.createTemplateFromSession(s.id);
+                            }}
+                            title="Create template from session"
+                          >
+                            <FileText size={14} />
+                          </button>
                           <span class="text-xs px-2 py-0.5 rounded-full border border-gray-7/60 text-gray-11 flex items-center gap-1.5">
                             <span class="w-1.5 h-1.5 rounded-full bg-current" />
                             {props.sessionStatusById[s.id] ?? "idle"}
                           </span>
                         </div>
-                      </button>
+                      </div>
                     )}
                   </For>
 
@@ -628,8 +642,8 @@ export default function DashboardView(props: DashboardViewProps) {
                 <div class="bg-gray-2/30 border border-gray-6/50 rounded-2xl overflow-hidden">
                   <For each={props.sessions.slice(0, 3)}>
                     {(s, idx) => (
-                      <button
-                        class={`w-full p-4 flex items-center justify-between hover:bg-gray-4/50 transition-colors text-left ${
+                      <div
+                        class={`group w-full p-4 flex items-center justify-between hover:bg-gray-4/50 transition-colors cursor-pointer ${
                           idx() !== Math.min(props.sessions.length, 3) - 1
                             ? "border-b border-gray-6/50"
                             : ""
@@ -637,7 +651,9 @@ export default function DashboardView(props: DashboardViewProps) {
                         onPointerDown={(e) => {
                           e.currentTarget.setPointerCapture?.(e.pointerId);
                         }}
-                        onPointerUp={() => {
+                        onPointerUp={(e) => {
+                          // Don't open session if clicking the template button
+                          if ((e.target as HTMLElement).closest('[data-template-btn]')) return;
                           openSessionFromList(s.id);
                         }}
                       >
@@ -646,7 +662,7 @@ export default function DashboardView(props: DashboardViewProps) {
                             #{s.slug?.slice(0, 2) ?? ".."}
                           </div>
                           <div>
-                            <div class="font-medium text-sm text-gray-12">
+                            <div class="font-medium text-sm text-gray-12 text-left">
                               {s.title}
                             </div>
                             <div class="text-xs text-gray-10 flex items-center gap-2">
@@ -667,13 +683,24 @@ export default function DashboardView(props: DashboardViewProps) {
                             </div>
                           </div>
                         </div>
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                          <button
+                            data-template-btn
+                            class="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-gray-6/50 text-gray-10 hover:text-gray-12 transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              props.createTemplateFromSession(s.id);
+                            }}
+                            title="Create template from session"
+                          >
+                            <FileText size={14} />
+                          </button>
                           <span class="text-xs px-2 py-0.5 rounded-full border border-gray-7/60 text-gray-11 flex items-center gap-1.5">
                             <span class="w-1.5 h-1.5 rounded-full bg-current" />
                             {props.sessionStatusById[s.id] ?? "idle"}
                           </span>
                         </div>
-                      </button>
+                      </div>
                     )}
                   </For>
 
