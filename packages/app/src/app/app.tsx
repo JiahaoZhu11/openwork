@@ -771,6 +771,7 @@ export default function App() {
     globalCommands,
     otherCommands,
     openCommandModal,
+    closeCommandModal,
     saveCommand,
     deleteCommand,
     runCommand,
@@ -778,6 +779,8 @@ export default function App() {
     openRunModal,
     confirmRunModal,
     closeRunModal,
+    showOverrideConfirmation,
+    cancelOverride,
   } = commandState;
 
   loadCommandsRef = loadCommands;
@@ -2450,8 +2453,10 @@ export default function App() {
         description={commandDraftDescription()}
         template={commandDraftTemplate()}
         scope={commandDraftScope()}
-        onClose={() => setCommandModalOpen(false)}
+        showOverrideConfirmation={showOverrideConfirmation()}
+        onClose={closeCommandModal}
         onSave={saveCommand}
+        onCancelOverride={cancelOverride}
         onNameChange={setCommandDraftName}
         onDescriptionChange={setCommandDraftDescription}
         onTemplateChange={setCommandDraftTemplate}
