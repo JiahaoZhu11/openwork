@@ -97,6 +97,7 @@ export type SessionViewProps = {
   commands: WorkspaceCommand[];
   runCommand: (command: WorkspaceCommand, details?: string) => Promise<void>;
   openCommandRunModal: (command: WorkspaceCommand) => void;
+  onCreateCommandFromSession?: (sessionId: string) => void;
 };
 
 export default function SessionView(props: SessionViewProps) {
@@ -775,6 +776,7 @@ export default function SessionView(props: SessionViewProps) {
                 }}
                sessionStatusById={props.sessionStatusById}
                onCreateSession={props.createSessionAndOpen}
+               onCreateCommandFromSession={props.onCreateCommandFromSession}
                newTaskDisabled={props.newTaskDisabled}
              />
           </aside>

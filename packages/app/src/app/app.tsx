@@ -65,6 +65,7 @@ import type {
 } from "./types";
 import {
   clearModePreference,
+  filterSessionsByWorkspace,
   formatBytes,
   formatModelLabel,
   formatModelRef,
@@ -73,6 +74,7 @@ import {
   isTauriRuntime,
   modelEquals,
 } from "./utils";
+import type { ReferenceSession } from "./components/command-modal";
 import { currentLocale, setLocale, t, type Language } from "../i18n";
 import {
   isWindowsPlatform,
@@ -781,6 +783,68 @@ export default function App() {
   } = commandState;
 
   loadCommandsRef = loadCommands;
+
+  // Command modal state for session selector
+  const [commandSessionLoading, setCommandSessionLoading] = createSignal(false);
+  const [commandSelectedSessionId, setCommandSelectedSessionId] = createSignal("");
+  const [commandReferenceSession, setCommandReferenceSession] = createSignal<{ id: string; title: string } | null>(null);
+
+  // Shared filtered sessions - same logic used by Sessions page, Dashboard, and Command modal
+  const workspaceFilteredSessions = createMemo(() =>
+    filterSessionsByWorkspace(activeSessions(), workspaceStore.activeWorkspaceRoot())
+  );
+
+  // Handler for creating a command from a session (called from session list buttons)
+  async function createCommandFromSession(sessionId: string) {
+    const session = activeSessions().find((s) => s.id === sessionId);
+    if (!session) return;
+
+    // Reset draft and set loading state
+    setCommandDraftName("");
+    setCommandDraftDescription("");
+    setCommandDraftTemplate("");
+    setCommandDraftScope("workspace");
+    setCommandSelectedSessionId("");
+    setError(null);
+    setCommandSessionLoading(true);
+
+    // Open modal immediately to show loading state
+    setCommandReferenceSession({ id: session.id, title: session.title });
+    setCommandModalOpen(true);
+
+    // Load session data asynchronously
+    const c = client();
+    if (c && !isDemoMode()) {
+      try {
+        const msgs = unwrap(await c.session.messages({ sessionID: sessionId }));
+        const firstUserMsg = msgs.find((m) => m.info.role === "user");
+
+        // Extract template from first user message
+        let templateText = "";
+        if (firstUserMsg) {
+          const textPart = firstUserMsg.parts?.find((p) => p.type === "text") as { type: "text"; text: string } | undefined;
+          if (textPart) {
+            templateText = textPart.text;
+          }
+        }
+
+        // Pre-populate the draft with sanitized command name
+        const safeName = session.title.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9_-]/g, "").replace(/-+/g, "-");
+        setCommandDraftName(safeName);
+        setCommandDraftTemplate(templateText.trim());
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to load session messages";
+        setError(message);
+      } finally {
+        setCommandSessionLoading(false);
+      }
+    } else {
+      // No client - just set name
+      const safeName = session.title.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9_-]/g, "").replace(/-+/g, "-");
+      setCommandDraftName(safeName);
+      setCommandSessionLoading(false);
+    }
+  }
 
   const systemState = createSystemState({
     client,
@@ -2117,9 +2181,15 @@ export default function App() {
       setCommandDraftTemplate("");
       setCommandDraftScope(scope);
     },
-    openCommandModal,
+    openCommandModal: () => {
+      setCommandSelectedSessionId("");
+      setError(null);
+      setCommandReferenceSession(null);
+      openCommandModal();
+    },
     runCommand: openRunModal,
     deleteCommand,
+    createCommandFromSession,
     refreshSkills: (options?: { force?: boolean }) => refreshSkills(options).catch(() => undefined),
     refreshPlugins: (scopeOverride?: PluginScope) =>
       refreshPlugins(scopeOverride).catch(() => undefined),
@@ -2274,6 +2344,7 @@ export default function App() {
     commands: commands(),
     runCommand: runCommand,
     openCommandRunModal: openRunModal,
+    onCreateCommandFromSession: createCommandFromSession,
     onTryNotionPrompt: () => {
       setPrompt("setup my crm");
       setTryNotionPromptVisible(false);
@@ -2450,12 +2521,85 @@ export default function App() {
         description={commandDraftDescription()}
         template={commandDraftTemplate()}
         scope={commandDraftScope()}
-        onClose={() => setCommandModalOpen(false)}
+        loadingSession={commandSessionLoading()}
+        selectedSessionId={commandSelectedSessionId()}
+        sessions={workspaceFilteredSessions().map((s) => ({
+          id: s.id,
+          title: s.title,
+        }))}
+        referenceSession={commandReferenceSession() ?? undefined}
+        onClose={() => {
+          setCommandModalOpen(false);
+          setCommandSessionLoading(false);
+          setCommandSelectedSessionId("");
+          setCommandReferenceSession(null);
+        }}
         onSave={saveCommand}
         onNameChange={setCommandDraftName}
         onDescriptionChange={setCommandDraftDescription}
         onTemplateChange={setCommandDraftTemplate}
         onScopeChange={setCommandDraftScope}
+        onSelectSession={async (sessionId) => {
+          // If clearing selection, just reset the state
+          if (!sessionId) {
+            setCommandSelectedSessionId("");
+            return;
+          }
+
+          const session = activeSessions().find((s) => s.id === sessionId);
+          if (!session) return;
+
+          // Store previous state for rollback on error
+          const previousSessionId = commandSelectedSessionId();
+          const previousName = commandDraftName();
+          const previousDescription = commandDraftDescription();
+          const previousTemplate = commandDraftTemplate();
+
+          // Set selection immediately to show in dropdown
+          setCommandSelectedSessionId(sessionId);
+
+          // Load first user message (async) then set name and template together
+          const c = client();
+          if (c && !isDemoMode()) {
+            setCommandSessionLoading(true);
+            setError(null);
+            try {
+              const msgs = unwrap(await c.session.messages({ sessionID: sessionId }));
+              const firstUserMsg = msgs.find((m) => m.info.role === "user");
+
+              // Extract template from first user message (empty string if none)
+              let templateText = "";
+              if (firstUserMsg) {
+                const textPart = firstUserMsg.parts?.find((p) => p.type === "text") as { type: "text"; text: string } | undefined;
+                if (textPart) {
+                  templateText = textPart.text;
+                }
+              }
+
+              // Set name and template together after async load
+              const safeName = session.title.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9_-]/g, "").replace(/-+/g, "-");
+              setCommandDraftName(safeName);
+              setCommandDraftDescription("");
+              setCommandDraftTemplate(templateText.trim());
+            } catch (err) {
+              // On error: show error, reset to previous selection, don't change inputs
+              const message = err instanceof Error ? err.message : "Failed to load session messages";
+              setError(message);
+              setCommandSelectedSessionId(previousSessionId);
+              setCommandDraftName(previousName);
+              setCommandDraftDescription(previousDescription);
+              setCommandDraftTemplate(previousTemplate);
+            } finally {
+              setCommandSessionLoading(false);
+            }
+          } else {
+            // No client - just set name and clear template
+            const safeName = session.title.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9_-]/g, "").replace(/-+/g, "-");
+            setCommandDraftName(safeName);
+            setCommandDraftDescription("");
+            setCommandDraftTemplate("");
+          }
+        }}
       />
 
       <CommandRunModal
