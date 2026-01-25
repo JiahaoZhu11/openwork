@@ -707,4 +707,5 @@ export default {
   "app.error.command_name_template_required": "命令名称和指令为必填项。",
   "app.error.workspace_commands_desktop": "命令需要桌面应用。",
   "app.error.command_scope_unknown": "此命令无法在当前模式下管理。",
+  "app.error.command_already_exists": "已存在同名命令。请使用其他名称或先删除现有命令。",
 } as const;

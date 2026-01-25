@@ -713,5 +713,6 @@ export default {
   "app.error.install_failed": "OpenCode install failed. See logs above.",
   "app.error.command_name_template_required": "Command name and instructions are required.",
   "app.error.workspace_commands_desktop": "Commands require the desktop app.",
-  "app.error.command_scope_unknown": "This command can’t be managed in this mode.",
+  "app.error.command_scope_unknown": "This command can't be managed in this mode.",
+  "app.error.command_already_exists": "A command with this name already exists. Please use a different name or delete the existing command first.",
 } as const;

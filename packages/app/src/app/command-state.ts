@@ -109,6 +109,15 @@ export function createCommandState(options: {
       setCommandDraftName(safeName);
     }
 
+    // Check if a command with the same name already exists in the same scope
+    const existingCommand = commands().find(
+      (c) => c.name === safeName && c.scope === draft.scope
+    );
+    if (existingCommand) {
+      options.setError(t("app.error.command_already_exists", currentLocale()));
+      return;
+    }
+
     options.setBusy(true);
     options.setBusyLabel(
       draft.scope === "workspace" ? "status.saving_workspace_command" : "status.saving_command",
