@@ -54,13 +54,15 @@ export default function CommandModal(props: CommandModalProps) {
                   <div class="mb-1 flex items-center justify-between gap-2">
                     <span class="text-xs font-medium text-gray-11 shrink-0">{translate("commands.name_label")}</span>
                     <span
-                      class="text-xs text-amber-11 flex items-center gap-1 h-4 min-w-0 truncate"
+                      class="text-xs text-amber-11 flex items-center gap-1 h-4 min-w-0 group relative"
                       classList={{ invisible: !showSanitizedHint() }}
-                      title={showSanitizedHint() ? sanitizedName() : undefined}
                     >
                       <AlertTriangle size={12} class="shrink-0" />
                       <span class="truncate">
                         {translate("commands.name_will_be")} <code class="bg-gray-4 px-1 rounded">{sanitizedName()}</code>
+                      </span>
+                      <span class="absolute right-0 top-full mt-1 px-2 py-1 bg-gray-3 border border-gray-6 rounded text-xs text-gray-12 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity delay-100 pointer-events-none z-10">
+                        {sanitizedName()}
                       </span>
                     </span>
                   </div>
